@@ -1,0 +1,28 @@
+<?xml version="1.0" ?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<configuration>
+    <!-- <property>
+        <name>fs.s3a.connection.ssl.enabled</name>
+        <value>false</value>
+    </property> -->
+    <property>
+        <name>spark.hadoop.fs.s3a.endpoint</name>
+        <value>http://minio-svc.localhost:80</value>
+    </property>
+    <property>
+        <name>spark.hadoop.fs.s3a.awsAccessKeyId</name>
+        <value>minio</value>
+    </property>
+    <property>
+        <name>spark.hadoop.fs.s3a.awsSecretAccessKey</name>
+        <value>miniominio</value>
+    </property>
+    <property>
+        <name>spark.hadoop.fs.s3a.path.style.access</name>
+        <value>true</value>
+    </property>
+    <property>
+        <name>spark.hadoop.fs.s3a.impl</name>
+        <value>org.apache.hadoop.fs.s3a.S3AFileSystem</value>
+    </property>
+</configuration>

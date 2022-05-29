@@ -1,0 +1,2 @@
+# Base Python requirements to insert in Docker image of Pyspark
+requests
