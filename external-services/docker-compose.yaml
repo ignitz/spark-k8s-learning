@@ -89,6 +89,9 @@ services:
     container_name: kowl
     depends_on:
       - broker
+      - schema-registry
+      - connect
+    restart: always
     ports:
       - "10000:10000"
     volumes:

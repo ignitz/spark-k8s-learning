@@ -1,4 +1,3 @@
-from ensurepip import bootstrap
 import sys
 from pyspark.sql import SparkSession
 
