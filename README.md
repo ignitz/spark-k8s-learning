@@ -49,6 +49,23 @@ bash -c "kubectl create ingress grafana -n monitoring --rule=grafana.localhost/\
 ) && echo "done"
 ```
 
+### Create Spark Image and sent to Kind Cluster
+
+```shell
+# Create Spark Image
+(
+    cd spark/docker && \
+    docker build -f Dockerfile -t spark3:latest .
+)
+(
+    cd spark/docker && \
+    docker build -f Dockerfile.spark-operator -t spark-operator:latest .
+)
+
+# Send image to Kind Cluster
+kind load docker-image spark3 spark-operator
+```
+
 ## Spark Operator
 
 ```shell
@@ -67,16 +84,6 @@ helm upgrade --install spark-operator spark-operator/spark-operator --debug \
     --namespace spark-operator \
     --create-namespace \
     -f spark/operator/values.yaml
-```
-
-### Create Spark Image and sent to Kind Cluster
-
-```shell
-# Create Spark Image
-(cd spark/docker && docker build -t spark3:latest .)
-
-# Send image to Kind Cluster
-kind load docker-image spark3
 ```
 
 ## Create Kafka-Connector to send data to Kafka
@@ -192,8 +199,13 @@ airflow connections add \
    AirflowS3Logs
 ```
 
-- `source venv/bin/activate && PYTHON_PATH=$PWD/airflow/dags airflow webserver` in one terminal
-- `source venv/bin/activate && PYTHON_PATH=$PWD/airflow/dags airflow scheduler` in another terminal
+```shell
+# in one terminal
+source venv/bin/activate && PYTHON_PATH=$PWD/airflow/dags airflow webserver
+
+# in another terminal
+source venv/bin/activate && PYTHON_PATH=$PWD/airflow/dags airflow scheduler
+```
 
 Create an admin user:
 
@@ -232,3 +244,4 @@ After the DAG is completed, you can check the output in Minio's datalake bucket 
 - [ ] Create a new class with family of driver/executors with different configs (CPU/MEM)
 - [ ] Support to parse Avro in Key and Value from Kafka
 - [ ] Try to support Protobuf.
+- [ ] Support to dynamic 'pip install' of packages
