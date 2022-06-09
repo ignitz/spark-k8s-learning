@@ -19,5 +19,5 @@ ingressUrlFormat: "{{$appName}}.localhost"
 
 # podLabels -- Additional labels to add to the pod
 podLabels: {
-  user: yuriniitsuma
+  user: yuriniitsuma # just an example
 }

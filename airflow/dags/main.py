@@ -53,8 +53,7 @@ with DAG(
         for topic in topic_list:
             tk = SparkOperator(
                 task_id='spark_kafka_' + topic.replace('.', '_'),
-                application_name=topic.replace('.', '-').replace('_', '-'),
-                main_application_file='s3a://spark-artifacts/pyspark/example_jibaro.py',
+                main_application_file='s3a://spark-artifacts/pyspark/develop/kafka_to_raw.py',
                 arguments=[topic],
                 pyFiles=['s3a://spark-artifacts/lib/jibaro.zip'],
                 dag=dag,

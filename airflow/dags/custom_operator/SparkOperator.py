@@ -7,9 +7,9 @@ from airflow.models import BaseOperator
 from airflow.exceptions import AirflowException
 from airflow.providers.cncf.kubernetes.hooks.kubernetes import KubernetesHook
 import time
-import yaml
 import os
 import random
+import hashlib
 
 if TYPE_CHECKING:
     from airflow.utils.context import Context
@@ -44,7 +44,6 @@ class SparkOperator(BaseOperator):
     def __init__(
         self,
         *,
-        application_name: str,
         arguments: List[str] = [],
         attach_log: bool = False,
         namespace: str = "spark",
@@ -66,7 +65,14 @@ class SparkOperator(BaseOperator):
         **kwargs,
     ) -> None:
         super().__init__(**kwargs, do_xcom_push=False)
-        self.application_name = application_name
+        # Cannot be more than 63 chars
+        sha1 = hashlib.sha1()
+        sha1.update(str(self.task_id).encode('utf-8'))
+        self.application_name = (
+            self.dag.dag_id[:20]
+            + '.' +
+            sha1.hexdigest()
+        ).lower().replace('.', '-').replace('_', '-')
         self.attach_log = attach_log
         self.namespace = namespace
         self.kubernetes_conn_id = kubernetes_conn_id
@@ -232,13 +238,19 @@ class SparkOperator(BaseOperator):
     def execute(self, context: 'Context') -> None:
         self.log.info(context)
         self.log.info("Starting SparkApplication: %s", self.application_name)
+        # TODO: Delete before send application
         response = self._create_spark_application(context)
         self.log.info("SparkApplication started: %s", self.application_name)
         self.log.info("SparkApplication response: %s", response)
-        while not self.poke(context=context):
-            # Sleep for 10 seconds for production environment
-            # time.sleep(10.0 + random.uniform(-1.0, 10.0))
-            time.sleep(1.0)
+        try:
+            while not self.poke(context=context):
+                # Sleep for 10 seconds for production environment
+                # time.sleep(10.0 + random.uniform(-1.0, 10.0))
+                time.sleep(1.0)
+        except AirflowException as ae:
+            self.log.info(self.hook.get_pod_logs(
+                self.application_name + '-driver', namespace=self.namespace).data.decode())    
+            raise ae
         self.log.info("SparkApplication finished: %s", self.application_name)
         self.log.info(self.hook.get_pod_logs(
             self.application_name + '-driver', namespace=self.namespace).data.decode())

@@ -47,6 +47,9 @@ bash -c "kubectl create ingress grafana -n monitoring --rule=grafana.localhost/\
     timeout 90s bash -c "until docker exec postgres pg_isready ; do sleep 5 ; done" && \
     docker exec postgres psql -U postgres -c "CREATE DATABASE airflow;"
 ) && echo "done"
+
+# To cleanup
+# (cd external-services && docker compose down --volumes)
 ```
 
 ### Create Spark Image and sent to Kind Cluster
@@ -113,10 +116,7 @@ Copy spark scripts from `spark/scripts/` to the bucket `spark-artifacts`.
 
 ```shell
 # Create Kafka-Connector
-(
-    cd spark/ && \
-    bash copy_scripts.sh
-)
+bash copy_jibaro.sh
 ```
 
 test Spark submit:
@@ -238,7 +238,7 @@ After the DAG is completed, you can check the output in Minio's datalake bucket 
 - [ ] Export metrics to Prometheus
 - [ ] Documentation of SparkOperator
 - [ ] Support to spark with `.jar` files
-- [ ] Create a lib and send with a `.zip` file with `--pyFiles`
+- [✅] Create a lib and send with a `.zip` file with `--pyFiles`
 - [ ] Support ENV
 - [ ] Support secrets
 - [ ] Create a new class with family of driver/executors with different configs (CPU/MEM)
