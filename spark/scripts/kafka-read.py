@@ -16,9 +16,11 @@ df = (
 
 # df.writeStream.trigger(once=True).format("console").start().awaitTermination()
 
+path = f'datalake-raw/data/{topic}'
+
 df.writeStream.trigger(once=True).format("delta").start(
-    path=f's3a://datalake/data/{topic}',
-    checkpointLocation=f's3a://datalake/_checkpoints/kafka/{topic}'
+    path=f's3a://{path}',
+    checkpointLocation=f's3a://spark-control/_checkpoints/{path}'
 ).awaitTermination()
 
 spark.stop()

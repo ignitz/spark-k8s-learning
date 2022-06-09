@@ -63,10 +63,10 @@ kubectl create serviceaccount spark -n spark
 kubectl create clusterrolebinding spark-role --clusterrole=edit --serviceaccount=spark:spark --namespace=spark
 
 # Install spark operator
-helm install spark-operator spark-operator/spark-operator --debug \
+helm upgrade --install spark-operator spark-operator/spark-operator --debug \
     --namespace spark-operator \
     --create-namespace \
-    --set sparkJobNamespace=spark
+    -f spark/operator/values.yaml
 ```
 
 ### Create Spark Image and sent to Kind Cluster
@@ -150,12 +150,14 @@ Obviosly you need Python 3 and pip3 installed on your computer.
 
 ```shell
 # Install Airflow
-pip install apache-airflow \
+python3 -m venv venv && source venv/bin/activate && \
+pip install apache-airflow==2.3.2 \
+    psycopg2-binary \
     apache-airflow-providers-cncf-kubernetes \
     apache-airflow-providers-amazon
 ```
 
-Run `airflow init db` for the first time to create the config files.
+Run `airflow db init` for the first time to create the config files.
 
 Change the config below in `$HOME/airflow/airflow.cfg`:
 
@@ -164,6 +166,8 @@ dags_folder = $LOCAL_TO_REPO/airflow/dags
 executor = LocalExecutor
 load_examples = False
 sql_alchemy_conn = postgresql+psycopg2://postgres:postgres@localhost/airflow
+remote_logging = True
+remote_log_conn_id = AirflowS3Logs
 ```
 
 Change config with sed:
@@ -173,13 +177,23 @@ sed -i 's/^executor = .*/executor = LocalExecutor/g' $HOME/airflow/airflow.cfg
 sed -i 's/^load_examples = .*/load_examples = False/g' $HOME/airflow/airflow.cfg
 sed -i 's/^sql_alchemy_conn = .*/sql_alchemy_conn = postgresql+psycopg2:\/\/postgres:postgres@localhost\/airflow/g' $HOME/airflow/airflow.cfg
 sed -i 's:^dags_folder = .*:dags_folder = '`pwd`'/airflow\/dags:g' $HOME/airflow/airflow.cfg
+sed -i 's/^remote_logging = .*/remote_logging = True/g' $HOME/airflow/airflow.cfg
+sed -i 's/^remote_log_conn_id = .*/remote_log_conn_id = AirflowS3Logs/g' $HOME/airflow/airflow.cfg
+sed -i 's/^remote_base_log_folder = .*/remote_base_log_folder = s3:\/\/airflow-logs\/logs/g' $HOME/airflow/airflow.cfg
 ```
 
 Then run:
 
-- `airflow db init`
-- `PYTHON_PATH=$PWD/airflow/dags airflow webserver` in one terminal
-- `PYTHON_PATH=$PWD/airflow/dags airflow scheduler` in another terminal
+```shell
+source venv/bin/activate && airflow db init && \
+airflow connections add \
+   --conn-type 's3' \
+   --conn-extra '{ "aws_access_key_id": "minio", "aws_secret_access_key": "miniominio", "host": "http://localhost:9000" }' \
+   AirflowS3Logs
+```
+
+- `source venv/bin/activate && PYTHON_PATH=$PWD/airflow/dags airflow webserver` in one terminal
+- `source venv/bin/activate && PYTHON_PATH=$PWD/airflow/dags airflow scheduler` in another terminal
 
 Create an admin user:
 
@@ -202,3 +216,19 @@ After the DAG is completed, you can check the output in Minio's datalake bucket 
 
 ![Checkpoint and Data](docs/img/minio-checkpoint-data.png)
 ![Tables in Minio](docs/img/dataset-in-minio.png)
+
+
+# TODO
+
+- [ ] Export SparkUI with Ingress or a reverse proxy
+- [ ] Deploy Spark-History-server
+- [ ] Export SparkUI to bucket to Spark-History-server
+- [ ] Export metrics to Prometheus
+- [ ] Documentation of SparkOperator
+- [ ] Support to spark with `.jar` files
+- [ ] Create a lib and send with a `.zip` file with `--pyFiles`
+- [ ] Support ENV
+- [ ] Support secrets
+- [ ] Create a new class with family of driver/executors with different configs (CPU/MEM)
+- [ ] Support to parse Avro in Key and Value from Kafka
+- [ ] Try to support Protobuf.

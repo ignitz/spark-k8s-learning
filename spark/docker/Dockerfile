@@ -88,7 +88,7 @@ RUN pip install -r /tmp/requirements.txt && rm /tmp/requirements.txt
 # Support Jupyter Notebook
 # RUN pip install jupyter
 # ENV PYSPARK_DRIVER_PYTHON "jupyter"
-# ENV PYSPARK_DRIVER_PYTHON_OPTS "notebook"
+# ENV PYSPARK_DRIVER_PYTHON_OPTS "notebook --properties-file /opt/spark/conf/spark.properties"
 # ENV PYSPARK_PYTHON python3
 
 # COPY ./entrypoint.sh /opt/entrypoint.sh

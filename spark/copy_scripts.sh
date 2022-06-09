@@ -6,4 +6,4 @@ docker run --rm \
     --network kind \
     -v $PWD/scripts:/scripts \
     amazon/aws-cli:latest \
-    --endpoint-url http://minio:9000 --region us-east-1 s3 cp --recursive /scripts s3://spark-artifacts
+    --endpoint-url http://minio:9000 --region us-east-1 s3 cp --recursive /scripts s3://spark-artifacts/pyspark/

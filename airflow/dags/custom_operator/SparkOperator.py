@@ -1,5 +1,5 @@
 import os
-from typing import TYPE_CHECKING, List, Optional, Sequence
+from typing import TYPE_CHECKING, Dict, List, Optional, Sequence, Any
 
 from kubernetes import client
 
@@ -9,6 +9,7 @@ from airflow.providers.cncf.kubernetes.hooks.kubernetes import KubernetesHook
 import time
 import yaml
 import os
+import random
 
 if TYPE_CHECKING:
     from airflow.utils.context import Context
@@ -21,6 +22,8 @@ class SparkOperator(BaseOperator):
     .. seealso::
         For more detail about Spark Application Object have a look at the reference:
         https://github.com/GoogleCloudPlatform/spark-on-k8s-operator/blob/v1beta2-1.1.0-2.4.5/docs/api-docs.md#sparkapplication
+        or
+        https://github.com/GoogleCloudPlatform/spark-on-k8s-operator/blob/master/docs/user-guide.md
 
     :param application_name: spark Application resource name
     :param namespace: the kubernetes namespace where the sparkApplication reside in
@@ -29,6 +32,7 @@ class SparkOperator(BaseOperator):
     :param attach_log: determines whether logs for driver pod should be appended to the sensor log
     :param api_group: kubernetes api group of sparkApplication
     :param api_version: kubernetes api version of sparkApplication
+    # TODO: add remaining params
     """
 
     template_fields: Sequence[str] = ("application_name", "namespace")
@@ -47,6 +51,18 @@ class SparkOperator(BaseOperator):
         kubernetes_conn_id: str = "kubernetes_default",
         api_group: str = 'sparkoperator.k8s.io',
         api_version: str = 'v1beta2',
+        image: str = 'spark3:latest',
+        main_application_file: str = 's3a://spark-artifacts/pyspark/pokeapi.py',
+        packages: List[str] = [],
+        jars: List[str] = [],
+        pyFiles: List[str] = [],
+        spark_version: str = "3.1.1",
+        service_account: str = "spark",
+        driver: Optional[Dict[str, Any]] = None,
+        executor: Optional[Dict[str, Any]] = None,
+        num_executors: int = 1,
+        dynamic_allocation: Dict[str, Any] = {'enabled': False},
+        spark_confs: Dict[str, Any] = {},
         **kwargs,
     ) -> None:
         super().__init__(**kwargs, do_xcom_push=False)
@@ -59,6 +75,64 @@ class SparkOperator(BaseOperator):
         self.api_version = api_version
         self.plural = "sparkapplications"
         self.arguments = arguments
+        self.mainApplicationFile = main_application_file
+        self.sparkVersion = spark_version
+        self.image = image
+        self.packages = packages
+        self.jars = jars
+        self.pyFiles = pyFiles
+
+        self.restartPolicy = {
+            "type": "Never"
+        }
+
+        if driver is None:
+            self.driver = {
+                "cores": 1,
+                "coreLimit": "1200m",
+                "memory": "512m",
+                "labels": {
+                    "version": spark_version
+                },
+                "serviceAccount": service_account
+            }
+        else:
+            self.driver = driver
+
+        if executor is None:
+            self.executor = {
+                "cores": 1,
+                "instances": 1, # Number of executors
+                "coreLimit": "1200m",
+                "memory": "512m",
+                "labels": {
+                    "version": spark_version
+                },
+                "serviceAccount": service_account
+            }
+        else:
+            self.executor = executor
+        self.executor["instances"] = num_executors
+
+        # TODO: Validate format of dynamic allocation
+        # dynamicAllocation:
+        #   enabled: true
+        #   initialExecutors: 1
+        #   maxExecutors: 5
+        #   minExecutors: 1
+        self.dynamicAllocation = dynamic_allocation
+
+        default_confs = {
+            "spark.hadoop.fs.s3a.endpoint": "http://minio:9000",
+            "spark.hadoop.fs.s3a.access.key": "minio",
+            "spark.hadoop.fs.s3a.secret.key": "miniominio",
+            "spark.hadoop.fs.s3a.path.style.access": "true",
+            "spark.hadoop.fs.s3a.impl": "org.apache.hadoop.fs.s3a.S3AFileSystem",
+            "spark.sql.extensions": "io.delta.sql.DeltaSparkSessionExtension",
+            "spark.sql.catalog.spark_catalog": "org.apache.spark.sql.delta.catalog.DeltaCatalog",
+        }
+        self.sparkConf = {**default_confs, **spark_confs}
+
 
     def _log_driver(self, application_state: str, response: dict) -> None:
         if not self.attach_log:
@@ -88,28 +162,37 @@ class SparkOperator(BaseOperator):
 
     def _create_spark_application(self, context: 'Context') -> dict:
         self.log.info("Creating sparkApplication")
-        try:
-            filepath = os.path.join(os.path.dirname(
-                os.path.realpath(__file__)), 'spark_application.yaml')
-            with open(filepath, "r") as stream:
-                body_dict = yaml.safe_load(stream)
-        except yaml.YAMLError as e:
-            raise AirflowException(
-                f"Exception when loading resource definition: {e}\n")
-
-        if isinstance(body_dict, str):
-            raise AirflowException(
-                f"Error on load YAML file\n")
-
-        body_dict['metadata'] = {
-            'name': self.application_name,
-            'namespace': self.namespace
+        body_dict = {
+            'apiVersion': 'sparkoperator.k8s.io/v1beta2',
+            'kind': 'SparkApplication',
+            'metadata': {
+                'name': self.application_name,
+                'namespace': self.namespace
+            }
         }
 
         body_dict['spec'] = {
-            **body_dict['spec'],
-            'arguments': self.arguments
+            'type': 'Python', # TODO: Add support for .py and .jar
+            'pythonVersion': '3',
+            'mode': 'cluster',
+            'image': self.image,
+            'imagePullPolicy': 'IfNotPresent',
+            'mainApplicationFile': self.mainApplicationFile,
+            'arguments': self.arguments,
+            'sparkVersion': self.sparkVersion,
+            'restartPolicy': self.restartPolicy,
+            'driver': self.driver,
+            'executor': self.executor,
+            'sparkConf': self.sparkConf,
+            'deps': {
+                'packages': self.packages,
+                'jars': self.jars,
+                'pyFiles': self.pyFiles,
+            }
         }
+        if self.dynamicAllocation is not None:
+            body_dict['spec']['dynamicAllocation'] = self.dynamicAllocation
+        # TODO: pass environment variables
 
         response = self.hook.create_custom_object(
             group=self.api_group,
@@ -153,8 +236,9 @@ class SparkOperator(BaseOperator):
         self.log.info("SparkApplication started: %s", self.application_name)
         self.log.info("SparkApplication response: %s", response)
         while not self.poke(context=context):
-            # Sleep for 10 seconds
-            time.sleep(10.0)
+            # Sleep for 10 seconds for production environment
+            # time.sleep(10.0 + random.uniform(-1.0, 10.0))
+            time.sleep(1.0)
         self.log.info("SparkApplication finished: %s", self.application_name)
         self.log.info(self.hook.get_pod_logs(
             self.application_name + '-driver', namespace=self.namespace).data.decode())
