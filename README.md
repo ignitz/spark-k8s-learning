@@ -229,7 +229,6 @@ After the DAG is completed, you can check the output in Minio's datalake bucket 
 ![Checkpoint and Data](docs/img/minio-checkpoint-data.png)
 ![Tables in Minio](docs/img/dataset-in-minio.png)
 
-
 # TODO
 
 - [ ] Export SparkUI with Ingress or a reverse proxy
@@ -238,10 +237,11 @@ After the DAG is completed, you can check the output in Minio's datalake bucket 
 - [ ] Export metrics to Prometheus
 - [ ] Documentation of SparkOperator
 - [ ] Support to spark with `.jar` files
-- [✅] Create a lib and send with a `.zip` file with `--pyFiles`
+- [x] Create a lib and send with a `.zip` file with `--pyFiles`
 - [ ] Support ENV
 - [ ] Support secrets
 - [ ] Create a new class with family of driver/executors with different configs (CPU/MEM)
+- [ ] Support with JSON without Schema-Registry
 - [ ] Support to parse Avro in Key and Value from Kafka
 - [ ] Try to support Protobuf.
 - [ ] Support to dynamic 'pip install' of packages
