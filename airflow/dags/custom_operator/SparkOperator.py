@@ -136,6 +136,13 @@ class SparkOperator(BaseOperator):
             "spark.hadoop.fs.s3a.impl": "org.apache.hadoop.fs.s3a.S3AFileSystem",
             "spark.sql.extensions": "io.delta.sql.DeltaSparkSessionExtension",
             "spark.sql.catalog.spark_catalog": "org.apache.spark.sql.delta.catalog.DeltaCatalog",
+            "spark.streaming.blockInterval": "200",
+            "spark.streaming.receiver.writeAheadLog.enable": "true",
+            "spark.streaming.backpressure.enabled": "true",
+            "spark.streaming.backpressure.pid.minRate": "10",
+            "spark.streaming.receiver.maxRate": "100",
+            "spark.streaming.kafka.maxRatePerPartition": "100",
+            "spark.streaming.backpressure.initialRate": "30",
         }
         self.sparkConf = {**default_confs, **spark_confs}
 
