@@ -181,7 +181,8 @@ source venv/bin/activate && airflow db init && \
 airflow connections add \
    --conn-type 's3' \
    --conn-extra '{ "aws_access_key_id": "minio", "aws_secret_access_key": "miniominio", "host": "http://localhost:9000" }' \
-   AirflowS3Logs
+   AirflowS3Logs &&\
+airflow pools set spark 2 'spark on k8s'
 ```
 
 ```shell
@@ -230,3 +231,6 @@ After the DAG is completed, you can check the output in Minio's datalake bucket 
 - [x] Support to parse Avro in Key and Value from Kafka
 - [ ] Try to support Protobuf.
 - [ ] Support to dynamic 'pip install' of packages
+- [x] Automatic compact files in Delta Lake
+- [x] Automatic vacuum files in Delta Lake
+- [x] Create automatic history in `_history` folder to inspect metrics like numberoffiles for each version

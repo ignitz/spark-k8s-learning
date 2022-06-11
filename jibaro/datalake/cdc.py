@@ -1,3 +1,4 @@
+from jibaro.datalake.delta_handler import compact_files
 from jibaro.settings import settings
 from jibaro.utils import path_exists, delete_path
 import pyspark.sql.functions as fn
@@ -9,8 +10,6 @@ from delta import DeltaTable
 
 
 def kafka_to_raw(spark, database, bootstrap_servers, topic):
-    # TODO: make sure that only one instance of sparksession is running
-
     df = (
         spark.readStream.format('kafka')
         .option('kafka.bootstrap.servers', bootstrap_servers)
@@ -82,6 +81,11 @@ def raw_to_staged(spark, database, table_name):
             currentValueSchemaId = sc.broadcast(valueRow.valueSchemaId)
             currentValueSchema = sc.broadcast(getSchema(currentValueSchemaId.value))
 
+            print(f"currentKeySchemaId: {currentKeySchemaId}")
+            print(f"currentKeySchema: {currentKeySchema}")
+            print(f"currentValueSchemaId: {currentValueSchemaId}")
+            print(f"currentValueSchema: {currentValueSchema}")
+
             filterDF = df_change.filter(
                 (fn.col('keySchemaId') == currentKeySchemaId.value)
                 &
@@ -124,6 +128,7 @@ def staged_to_curated(spark, database, table_name):
     path: str = f'{database}/{table_name}'
     source_path: str = f'{settings.prefix_protocol}://{settings.staged}/{path}'
     output_path: str = f'{settings.prefix_protocol}://{settings.curated}/{path}'
+    history_path: str = f'{settings.prefix_protocol}://{settings.curated}/_history/{path}'
     checkpoint_location: str = f'{settings.checkpoint_curated}/{path}'
     
     schemaRegistryUrl: str = settings.schemaRegistryUrl
@@ -133,8 +138,8 @@ def staged_to_curated(spark, database, table_name):
     }
     schema_registry_client = SchemaRegistryClient(schema_registry_conf)
 
-    def getSchema(id):
-        return str(schema_registry_client.get_schema(id).schema_str)
+    # def getSchema(id):
+    #     return str(schema_registry_client.get_schema(id).schema_str)
 
 
     if not path_exists(spark, output_path):
@@ -170,10 +175,10 @@ def staged_to_curated(spark, database, table_name):
 
         for valueRow in distinctSchemaIdDF.collect():
             currentKeySchemaId = sc.broadcast(valueRow.keySchemaId)
-            currentKeySchema = sc.broadcast(getSchema(currentKeySchemaId.value))
+            # currentKeySchema = sc.broadcast(getSchema(currentKeySchemaId.value))
 
             currentValueSchemaId = sc.broadcast(valueRow.valueSchemaId)
-            currentValueSchema = sc.broadcast(getSchema(currentValueSchemaId.value))
+            # currentValueSchema = sc.broadcast(getSchema(currentValueSchemaId.value))
 
             filterDF = df_batch.filter(
                 (fn.col('keySchemaId') == currentKeySchemaId.value)
@@ -218,6 +223,35 @@ def staged_to_curated(spark, database, table_name):
                         .whenMatchedDelete(condition="update.op = 'd'")
                         .execute()
                 )
+                # end else
+            
+            need_compact, numFiles, numOfPartitions = compact_files(spark=spark, target_path=output_path)
+            
+            # Generate metrics
+            dt = DeltaTable.forPath(spark, output_path)
+
+            if need_compact:
+                max_version = (
+                    dt.history(2).select(fn.max('version').alias('max_version'))
+                    .first().max_version
+                )
+                dt.history(2).withColumn(
+                    "numFiles", fn.when(fn.col("version") == max_version, numOfPartitions)
+                                .otherwise(numFiles)
+                    ) \
+                    .write.format("delta") \
+                    .mode("append") \
+                    .option("mergeSchema", "true") \
+                    .save(history_path)
+            else:
+                dt.history(1).withColumn(
+                    "numFiles", fn.lit(numFiles)
+                    ) \
+                    .write.format("delta") \
+                    .mode("append") \
+                    .option("mergeSchema", "true") \
+                    .save(history_path)
+
     ###############################################################
     (
         df
@@ -228,3 +262,16 @@ def staged_to_curated(spark, database, table_name):
         .start().awaitTermination()
     )
     print("writeStream Done")
+
+    # Generate manifest
+    dt = DeltaTable.forPath(spark, output_path)
+    dt.generate("symlink_format_manifest")
+
+    # Do vacuum process every 25 versions
+    version = (
+        dt.history(2).select(fn.max('version').alias('max_version'))
+        .first().max_version
+    )
+    if version % 25 == 0 and version > 0:
+        dt.vacuum(retentionHours=768)
+    

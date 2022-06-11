@@ -64,12 +64,13 @@ class SparkOperator(BaseOperator):
         spark_confs: Dict[str, Any] = {},
         **kwargs,
     ) -> None:
-        super().__init__(**kwargs, do_xcom_push=False)
+        super().__init__(**kwargs, do_xcom_push=False, pool='spark')
         # Cannot be more than 63 chars
         sha1 = hashlib.sha1()
         sha1.update(str(self.task_id).encode('utf-8'))
         self.application_name = (
-            self.dag.dag_id[:20].lower().replace('.', '-').replace('_', '-')
+            self.dag.dag_id[:20].lower()
+            .replace('.', '-').replace('_', '-').replace(' ', '')
             + '.' +
             sha1.hexdigest()
         )
@@ -96,7 +97,7 @@ class SparkOperator(BaseOperator):
             self.driver = {
                 "cores": 1,
                 "coreLimit": "1200m",
-                "memory": "512m",
+                "memory": "2048m",
                 "labels": {
                     "version": spark_version
                 },
@@ -104,13 +105,14 @@ class SparkOperator(BaseOperator):
             }
         else:
             self.driver = driver
+        self.driver['labels']['dag_id'] = self.dag.dag_id
+        self.driver['labels']['task_id'] = self.task_id[:63]
 
         if executor is None:
             self.executor = {
                 "cores": 1,
-                "instances": 1, # Number of executors
                 "coreLimit": "1200m",
-                "memory": "512m",
+                "memory": "1024m",
                 "labels": {
                     "version": spark_version
                 },
@@ -118,6 +120,9 @@ class SparkOperator(BaseOperator):
             }
         else:
             self.executor = executor
+        self.executor['labels']['dag_id'] = self.dag.dag_id
+        self.executor['labels']['task_id'] = self.task_id[:63]
+
         self.executor["instances"] = num_executors
 
         # TODO: Validate format of dynamic allocation
@@ -129,13 +134,17 @@ class SparkOperator(BaseOperator):
         self.dynamicAllocation = dynamic_allocation
 
         default_confs = {
+            # S3a protocol
             "spark.hadoop.fs.s3a.endpoint": "http://minio:9000",
             "spark.hadoop.fs.s3a.access.key": "minio",
             "spark.hadoop.fs.s3a.secret.key": "miniominio",
             "spark.hadoop.fs.s3a.path.style.access": "true",
             "spark.hadoop.fs.s3a.impl": "org.apache.hadoop.fs.s3a.S3AFileSystem",
+            # Delta Lake releted
             "spark.sql.extensions": "io.delta.sql.DeltaSparkSessionExtension",
             "spark.sql.catalog.spark_catalog": "org.apache.spark.sql.delta.catalog.DeltaCatalog",
+            "spark.databricks.delta.retentionDurationCheck.enabled": "false",
+            # Spark Streaming
             "spark.streaming.blockInterval": "200",
             "spark.streaming.receiver.writeAheadLog.enable": "true",
             "spark.streaming.backpressure.enabled": "true",
@@ -143,6 +152,7 @@ class SparkOperator(BaseOperator):
             "spark.streaming.receiver.maxRate": "100",
             "spark.streaming.kafka.maxRatePerPartition": "100",
             "spark.streaming.backpressure.initialRate": "30",
+            # Spark Histopry
             "spark.eventLog.enabled": "true",
             "spark.eventLog.dir": "s3a://spark-history/logs",
             # "spark.history.provider": "org.apache.hadoop.fs.s3a.S3AFileSystem",

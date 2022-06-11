@@ -26,4 +26,7 @@ class Settings(BaseSettings):
             }
     }
 
+    # Delta Lake confis
+    max_num_files_allowed: int = 10000
+
 settings = Settings()
