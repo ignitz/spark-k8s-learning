@@ -5,8 +5,7 @@ import sys
 
 table_name = sys.argv[1]
 
-spark = SparkSession.builder.appName("Spark Streaming Delta").getOrCreate()
-
+spark = SparkSession.builder.appName("Spark Streaming Delta - raw to staged").getOrCreate()
 
 raw_to_staged(
     spark=spark,
