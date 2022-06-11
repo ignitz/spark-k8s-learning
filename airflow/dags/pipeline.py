@@ -17,12 +17,15 @@ with DAG(
     start = DummyOperator(task_id='start', dag=dag)
 
     with TaskGroup(group_id='Kafka-Curated') as kafka_group:
+        # topic_list = [
+        #     'dbserver1.inventory.customers',
+        #     'dbserver1.inventory.geom',
+        #     'dbserver1.inventory.orders',
+        #     'dbserver1.inventory.products',
+        #     'dbserver1.inventory.products_on_hand'
+        # ]
         topic_list = [
-            'dbserver1.inventory.customers',
-            'dbserver1.inventory.geom',
-            'dbserver1.inventory.orders',
-            'dbserver1.inventory.products',
-            'dbserver1.inventory.products_on_hand'
+            'dbserver1.inventory.products'
         ]
 
         for topic in topic_list:
@@ -41,7 +44,15 @@ with DAG(
                 pyFiles=['s3a://spark-artifacts/lib/jibaro.zip'],
                 dag=dag,
             )
-            kafka_raw >> raw_staged
+
+            staged_curated = SparkOperator(
+                task_id='spark_curated_' + topic.replace('.', '_'),
+                main_application_file='s3a://spark-artifacts/pyspark/develop/staged_to_curated.py',
+                arguments=[topic],
+                pyFiles=['s3a://spark-artifacts/lib/jibaro.zip'],
+                dag=dag,
+            )
+            kafka_raw >> raw_staged >> staged_curated
 
         
         kafka_group.set_upstream(start)

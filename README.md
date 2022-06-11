@@ -9,12 +9,10 @@ Repository to test and development in Spark on K8s
 - Kubectl
 - Helm
 
-```shell
-# Create Kind cluster
-kind create cluster --config kind/config.yaml
+## Create kind cluster
 
-# Add Nginx ingress in Kind cluster
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+```shell
+make create-kind
 ```
 
 ## Install Grafana and Prometheus
@@ -72,21 +70,8 @@ kind load docker-image spark3 spark-operator
 ## Spark Operator
 
 ```shell
-helm repo add spark-operator https://googlecloudplatform.github.io/spark-on-k8s-operator
-helm repo update
-
-# Create namespace "spark" where will run Jobs
-kubectl create namespace spark --dry-run=client -o yaml | kubectl apply -f -
-
-# Create service account "spark" to spark-operator allow submit jobs
-kubectl create serviceaccount spark -n spark
-kubectl create clusterrolebinding spark-role --clusterrole=edit --serviceaccount=spark:spark --namespace=spark
-
-# Install spark operator
-helm upgrade --install spark-operator spark-operator/spark-operator --debug \
-    --namespace spark-operator \
-    --create-namespace \
-    -f spark/operator/values.yaml
+make helm-add
+make install-spark
 ```
 
 ## Create Kafka-Connector to send data to Kafka

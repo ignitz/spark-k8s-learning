@@ -1,6 +1,6 @@
 from pyspark.sql import SparkSession
 
-from jibaro.kafka import kafka_to_raw
+from jibaro.datalake.cdc import kafka_to_raw
 from jibaro.settings import settings
 import sys
 
@@ -17,6 +17,4 @@ kafka_to_raw(
     topic=topic
 )
 
-# import time
-# time.sleep(10000.0)
 spark.stop()
