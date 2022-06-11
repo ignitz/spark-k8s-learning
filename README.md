@@ -9,6 +9,8 @@ Repository to test and development in Spark on K8s
 - Kubectl
 - Helm
 
+**DO YOUR "JEITO"** #BRHUEHUE
+
 ## Create kind cluster
 
 ```shell
@@ -18,20 +20,15 @@ make create-kind
 ## Install Grafana and Prometheus
 
 ```shell
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm repo update
+make helm-add
+make install-prometheus
+```
 
-helm upgrade --install --debug \
-    --create-namespace \
-    --namespace monitoring \
-    prometheus prometheus-community/kube-prometheus-stack \
-    --set grafana.enabled=true
+Access [http://grafana.localhost/](http://grafana.localhost/) with
 
-# Create Ingress to access Grafana
-bash -c "kubectl create ingress grafana -n monitoring --rule=grafana.localhost/\*=prometheus-grafana:80"
-# http://grafana.localhost/
-# user: admin
-# pass: prom-operator
+```
+user: admin
+pass: prom-operator
 ```
 
 ## External Kafka in Docker-Compose
@@ -39,32 +36,27 @@ bash -c "kubectl create ingress grafana -n monitoring --rule=grafana.localhost/\
 - Note: The new docker compose use `docker compose up -d` instead `docker-compose up -d`
 
 ```shell
-(
-    cd external-services && docker compose up -d && \
-    sleep 10 && \
-    timeout 90s bash -c "until docker exec postgres pg_isready ; do sleep 5 ; done" && \
-    docker exec postgres psql -U postgres -c "CREATE DATABASE airflow;"
-) && echo "done"
+make kafka-setup
 
 # To cleanup
-# (cd external-services && docker compose down --volumes)
+# make kafka-destroy
 ```
+
+Check with [Kowl](http://localhost:10000/topics) if data are sent to Kafka:
+
+![Kowl Topics](docs/img/kowl-topics.png)
 
 ### Create Spark Image and sent to Kind Cluster
 
 ```shell
 # Create Spark Image
-(
-    cd spark/docker && \
-    docker build -f Dockerfile -t spark3:latest .
-)
-(
-    cd spark/docker && \
-    docker build -f Dockerfile.spark-operator -t spark-operator:latest .
-)
+make build-spark
+
+# Create Operator Image
+make build-operator
 
 # Send image to Kind Cluster
-kind load docker-image spark3 spark-operator
+make send-images
 ```
 
 ## Spark Operator
@@ -74,37 +66,17 @@ make helm-add
 make install-spark
 ```
 
-## Create Kafka-Connector to send data to Kafka
+Copy `jibaro` library and scripts with:
 
-Need to create buckets
-
-```shell
-# Create Buckets
-bash external-services/create_buckets_minio.sh
+```
+make copy
 ```
 
-```shell
-# Create Kafka-Connector
-(
-    cd external-services/ && \
-    bash create_connector.sh
-)
-```
-
-Check with [Kowl](http://localhost:10000/topics) if data is sent to Kafka:
-
-![Kowl Topics](docs/img/kowl-topics.png)
-
-Copy spark scripts from `spark/scripts/` to the bucket `spark-artifacts`.
+This command will send files to `s3://spark-artifacts`.
 
 ## Test Spark Job
 
-```shell
-# Create Kafka-Connector
-bash copy_jibaro.sh
-```
-
-test Spark submit:
+Test Spark submit:
 
 ```shell
 kubectl apply -f tests/spark-test.yaml
@@ -160,6 +132,7 @@ load_examples = False
 sql_alchemy_conn = postgresql+psycopg2://postgres:postgres@localhost/airflow
 remote_logging = True
 remote_log_conn_id = AirflowS3Logs
+remote_base_log_folder = s3://airflow-logs/logs
 ```
 
 Change config with sed:
@@ -186,10 +159,10 @@ airflow pools set spark 2 'spark on k8s'
 ```
 
 ```shell
-# in one terminal
+# in one terminal run
 source venv/bin/activate && PYTHON_PATH=$PWD/airflow/dags airflow webserver
 
-# in another terminal
+# in another terminal run the scheduler
 source venv/bin/activate && PYTHON_PATH=$PWD/airflow/dags airflow scheduler
 ```
 
@@ -206,7 +179,7 @@ airflow users create \
 
 Insert password and go to [Airflow UI](http://localhost:8080/)
 
-And run `SparkOperator` dag:
+And run `Pipeline` dag:
 
 ![DAG Spark Operator](docs/img/dag-spark-operator.png)
 

@@ -4,7 +4,7 @@ from custom_operator import SparkOperator
 from airflow.operators.dummy import DummyOperator
 
 with DAG(
-    'SparkOperator',
+    'Development',
     default_args={'max_active_runs': 1},
     description='Spark Submit with sleep 10000 minutes to allow to test and development inside the pod',
     schedule_interval=timedelta(days=1),

@@ -9,7 +9,7 @@ sleep 30 && \
 (
     cd external-services && docker compose up -d
 ) && (
-    cd external-services && bash create_connector.sh
-) && (
     cd external-services && bash create_buckets_minio.sh
+) && (
+    cd external-services && bash create_connector.sh
 ) && echo "Done"

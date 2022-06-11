@@ -127,8 +127,9 @@ services:
     environment:
       MINIO_ROOT_USER: minio
       MINIO_ROOT_PASSWORD: miniominio
-    volumes:
-      - ./data/minio:/data
+    ## uncomment to persist data in minio 
+    # volumes:
+    #   - ./data/minio:/data
     command: server /data --console-address ":9001"
       
 networks:

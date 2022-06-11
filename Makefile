@@ -13,12 +13,12 @@ helm-add: ## Helm Add repositories
 	@helm repo add spark-operator https://googlecloudplatform.github.io/spark-on-k8s-operator
 	@helm repo update
 
-.PHONY: setup-kafka
-setup-kafka: ## Setup Confluent Kafka with docker compose
+.PHONY: kafka-setup
+kafka-setup: ## Setup Confluent Kafka with docker compose, create buckets and Debezium's connectors
 	@bash external-services/setup_kafka_stack.sh
 
-.PHONY: destroy-kafka
-destroy-kafka: ## Destroy Confluent Kafka with docker compose
+.PHONY: kafka-destroy
+kafka-destroy: ## Destroy Confluent Kafka with docker compose
 	@bash external-services/destroy_kafka_stack.sh
 
 .PHONY: install-prometheus
