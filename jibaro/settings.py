@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     checkpoint_staged: str = f"{checkpoint_paths}/staged"
     checkpoint_curated: str = f"{checkpoint_paths}/curated"
 
+    # schemaRegistryUrl: str = 'http://localhost:8081'
+    schemaRegistryUrl: str = 'http://schema-registry:8081'
+
     # Kafka configurations
     kafka_settings: Dict[str, Dict[str, Any]] = {
             'example': {

@@ -69,10 +69,10 @@ class SparkOperator(BaseOperator):
         sha1 = hashlib.sha1()
         sha1.update(str(self.task_id).encode('utf-8'))
         self.application_name = (
-            self.dag.dag_id[:20]
+            self.dag.dag_id[:20].lower().replace('.', '-').replace('_', '-')
             + '.' +
             sha1.hexdigest()
-        ).lower().replace('.', '-').replace('_', '-')
+        )
         self.attach_log = attach_log
         self.namespace = namespace
         self.kubernetes_conn_id = kubernetes_conn_id
@@ -143,6 +143,10 @@ class SparkOperator(BaseOperator):
             "spark.streaming.receiver.maxRate": "100",
             "spark.streaming.kafka.maxRatePerPartition": "100",
             "spark.streaming.backpressure.initialRate": "30",
+            "spark.eventLog.enabled": "true",
+            "spark.eventLog.dir": "s3a://spark-history/logs",
+            # "spark.history.provider": "org.apache.hadoop.fs.s3a.S3AFileSystem",
+            # "spark.history.fs.logDirectory": "s3a://spark-history/logs",
         }
         self.sparkConf = {**default_confs, **spark_confs}
 
@@ -255,6 +259,7 @@ class SparkOperator(BaseOperator):
                 # time.sleep(10.0 + random.uniform(-1.0, 10.0))
                 time.sleep(1.0)
         except AirflowException as ae:
+            # TODO: get logs from sparkapplications.sparkoperator.k8s.io resource when fail
             self.log.info(self.hook.get_pod_logs(
                 self.application_name + '-driver', namespace=self.namespace).data.decode())    
             raise ae
