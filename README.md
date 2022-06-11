@@ -218,7 +218,7 @@ After the DAG is completed, you can check the output in Minio's datalake bucket 
 
 - [ ] Export SparkUI with Ingress or a reverse proxy
 - [ ] Deploy Spark-History-server
-- [ ] Export SparkUI to bucket to Spark-History-server
+- [x] Export SparkUI to bucket to Spark-History-server
 - [ ] Export metrics to Prometheus
 - [ ] Documentation of SparkOperator
 - [ ] Support to spark with `.jar` files
@@ -227,6 +227,6 @@ After the DAG is completed, you can check the output in Minio's datalake bucket 
 - [ ] Support secrets
 - [ ] Create a new class with family of driver/executors with different configs (CPU/MEM)
 - [ ] Support with JSON without Schema-Registry
-- [ ] Support to parse Avro in Key and Value from Kafka
+- [x] Support to parse Avro in Key and Value from Kafka
 - [ ] Try to support Protobuf.
 - [ ] Support to dynamic 'pip install' of packages
