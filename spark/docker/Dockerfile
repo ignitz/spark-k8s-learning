@@ -64,6 +64,11 @@ ADD https://repo1.maven.org/maven2/org/apache/spark/spark-avro_2.12/${SPARK_VERS
 ADD https://repo1.maven.org/maven2/io/delta/delta-core_2.12/1.0.1/delta-core_2.12-1.0.1.jar $SPARK_HOME/jars
 ADD https://repo1.maven.org/maven2/io/delta/delta-contribs_2.12/1.0.1/delta-contribs_2.12-1.0.1.jar $SPARK_HOME/jars
 
+
+# Install delta libraries
+RUN pip install --upgrade pip
+RUN pip install delta-spark --no-dependencies
+
 # Setup for the Prometheus JMX exporter.
 # Add the Prometheus JMX exporter Java agent jar for exposing metrics sent to the JmxSink to Prometheus.
 ADD https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/0.11.0/jmx_prometheus_javaagent-0.11.0.jar /prometheus/

@@ -5,6 +5,7 @@ services:
     image: confluentinc/cp-zookeeper:7.1.0
     hostname: zookeeper
     container_name: zookeeper
+    restart: unless-stopped
     ports:
       - "2181:2181"
     environment:
@@ -15,6 +16,7 @@ services:
     image: confluentinc/cp-server:7.1.0
     hostname: broker
     container_name: broker
+    restart: unless-stopped
     depends_on:
       - zookeeper
     ports:
@@ -39,6 +41,7 @@ services:
     image: confluentinc/cp-schema-registry:7.1.0
     hostname: schema-registry
     container_name: schema-registry
+    restart: unless-stopped
     depends_on:
       - broker
     ports:
@@ -52,6 +55,7 @@ services:
     build: ./connect
     hostname: connect
     container_name: connect
+    restart: unless-stopped
     depends_on:
       - broker
       - schema-registry
@@ -81,6 +85,7 @@ services:
       CONNECT_CONSUMER_INTERCEPTOR_CLASSES: "io.confluent.monitoring.clients.interceptor.MonitoringConsumerInterceptor"
       CONNECT_PLUGIN_PATH: "/usr/share/java,/usr/share/confluent-hub-components"
       CONNECT_LOG4J_LOGGERS: org.apache.zookeeper=ERROR,org.I0Itec.zkclient=ERROR,org.reflections=ERROR
+      CONNECT_TOMBSTONES_ON_DELETE: false
 
   # To monitor Kafka
   kowl:
@@ -91,7 +96,7 @@ services:
       - broker
       - schema-registry
       - connect
-    restart: always
+    restart: unless-stopped
     ports:
       - "10000:10000"
     volumes:
@@ -104,6 +109,7 @@ services:
     image: quay.io/debezium/example-postgres:1.9
     hostname: postgres
     container_name: postgres
+    restart: unless-stopped
     ports:
      - 5432:5432
     environment:
@@ -114,6 +120,7 @@ services:
     image: quay.io/minio/minio:latest
     hostname: minio
     container_name: minio
+    restart: unless-stopped
     ports:
       - 9000:9000
       - 9001:9001
