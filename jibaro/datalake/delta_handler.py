@@ -13,7 +13,9 @@ def compact_files(spark, target_path):
             True
             if details.numFiles > settings.max_num_files_allowed
             else False
-        ) 
+        )
+
+        numOfPartitions = None
 
         if need_compact: 
             # Compact files

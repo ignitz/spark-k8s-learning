@@ -40,19 +40,20 @@ with DAG(
             raw_staged = SparkOperator(
                 task_id='spark_staged_' + topic.replace('.', '_'),
                 main_application_file='s3a://spark-artifacts/pyspark/develop/raw_to_staged.py',
-                arguments=[topic],
+                arguments=[topic, "json"],
                 pyFiles=['s3a://spark-artifacts/lib/jibaro.zip'],
                 dag=dag,
             )
 
-            staged_curated = SparkOperator(
-                task_id='spark_curated_' + topic.replace('.', '_'),
-                main_application_file='s3a://spark-artifacts/pyspark/develop/staged_to_curated.py',
-                arguments=[topic],
-                pyFiles=['s3a://spark-artifacts/lib/jibaro.zip'],
-                dag=dag,
-            )
-            kafka_raw >> raw_staged >> staged_curated
+            # staged_curated = SparkOperator(
+            #     task_id='spark_curated_' + topic.replace('.', '_'),
+            #     main_application_file='s3a://spark-artifacts/pyspark/develop/staged_to_curated.py',
+            #     arguments=[topic],
+            #     pyFiles=['s3a://spark-artifacts/lib/jibaro.zip'],
+            #     dag=dag,
+            # )
+            kafka_raw >> raw_staged
+            # raw_staged >> staged_curated
 
         
         kafka_group.set_upstream(start)

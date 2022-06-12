@@ -200,10 +200,11 @@ After the DAG is completed, you can check the output in Minio's datalake bucket 
 - [ ] Support ENV
 - [ ] Support secrets
 - [ ] Create a new class with family of driver/executors with different configs (CPU/MEM)
-- [ ] Support with JSON without Schema-Registry
+- [x] Support with JSON without Schema-Registry
 - [x] Support to parse Avro in Key and Value from Kafka
 - [ ] Try to support Protobuf.
 - [ ] Support to dynamic 'pip install' of packages
 - [x] Automatic compact files in Delta Lake
 - [x] Automatic vacuum files in Delta Lake
 - [x] Create automatic history in `_history` folder to inspect metrics like numberoffiles for each version
+- [ ] Add Trino to connect to Data Lake

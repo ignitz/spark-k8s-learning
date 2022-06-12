@@ -10,7 +10,8 @@ spark = SparkSession.builder.appName("Spark Streaming Delta - raw to staged").ge
 staged_to_curated(
     spark=spark,
     database='kafka',
-    table_name=table_name
+    table_name=table_name,
+    environment='example'
 )
 
 spark.stop()

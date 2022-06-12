@@ -161,6 +161,7 @@ cython_debug/
 
 venv/
 
-# peronal notes
+# personal notes
 notes.md
 errors
+metastore_db
