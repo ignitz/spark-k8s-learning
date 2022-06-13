@@ -135,6 +135,7 @@ def json_handler(spark, database, table_name):
     source_path: str = f'{settings.prefix_protocol}://{settings.raw}/{path}'
     output_path: str = f'{settings.prefix_protocol}://{settings.staged}/{path}'
     checkpoint_location: str = f'{settings.checkpoint_staged}/{path}'
+    schema_path: str = f'{output_path}/_schema'
 
     df = (
         spark.readStream.format('delta').load(source_path)
@@ -147,28 +148,44 @@ def json_handler(spark, database, table_name):
             .withColumn('value', fn.col('value').cast('string'))
         )
 
-        df_key = spark.read.json(
+        key_schema = None
+        key_payload_schema = None
+        value_schema = None
+        value_payload_schema = None
+
+        will_store_schema = False
+        if not path_exists(spark, schema_path):
+            df_key = spark.read.json(
                 df_batch.select(
                     fn.col('key')
                 ).rdd.map(lambda x: x.key)
             )
-        key_schema = StructType(
-            df_key.select('schema').schema
-        ).json()
-        key_payload_schema = StructType(
-            df_key.select('payload').schema
-        ).json()
-        df_value = spark.read.json(
-                df_batch.select(
-                    fn.col('value')
-                ).rdd.map(lambda x: x.value)
-            )
-        value_schema = StructType(
-            df_value.select('schema').schema
-        ).json()
-        value_payload_schema = StructType(
-            df_value.select('payload').schema
-        ).json()
+            key_schema = StructType(
+                df_key.select('schema').schema
+            ).json()
+            key_payload_schema = StructType(
+                df_key.select('payload').schema
+            ).json()
+            df_value = spark.read.json(
+                    df_batch.select(
+                        fn.col('value')
+                    ).rdd.map(lambda x: x.value)
+                )
+            value_schema = StructType(
+                df_value.select('schema').schema
+            ).json()
+            value_payload_schema = StructType(
+                df_value.select('payload').schema
+            ).json()
+            # write to schema_path later
+            will_store_schema = True
+        else:
+            # get schema
+            schemas = spark.read.parquet(schema_path).first()
+            key_payload_schema = schemas.key
+            value_payload_schema = schemas.value
+
+        
 
         # df_change = (
         #     df_batch.withColumn('keySchema', fn.from_json(fn.col('key').cast('string'), StructType.fromJson(json.loads(key_schema))))
@@ -211,13 +228,20 @@ def json_handler(spark, database, table_name):
                     'timestampType',
                     'keySchema',
                     'valueSchema',
-                )
+                ).withColumn('key', fn.col('key.payload'))
+                .withColumn('value', fn.col('value.payload'))
                 .write
                 .format("delta")
                 .mode("append")
                 .option("mergeSchema", "true")
                 .save(output_path)
             )
+
+            if will_store_schema:
+                spark.createDataFrame([{
+                    'key': key_payload_schema,
+                    'value': value_payload_schema
+                }]).write.mode('overwrite').parquet(schema_path)
     ###############################################################
     (
         df
@@ -282,26 +306,32 @@ def staged_to_curated(spark, database, table_name, environment):
                 Window.partitionBy('key').orderBy(fn.col('timestamp').desc())
             ),
         ).filter(fn.col('_row_num') == 1).drop('_row_num')
+
+        key_schema_column = 'keySchemaId' if 'keySchemaId' in df.columns else 'keySchema'
+        value_schema_column = 'valueSchemaId' if 'valueSchemaId' in df.columns else 'valueSchema'
+
+        df_batch.columns
+
         
         distinctSchemaIdDF = (
             df_batch
             .select(
-                'keySchemaId',
-                'valueSchemaId',
-            ).distinct().orderBy('keySchemaId', 'valueSchemaId')
+                key_schema_column,
+                value_schema_column,
+            ).distinct().orderBy(key_schema_column, value_schema_column)
         )
 
         for valueRow in distinctSchemaIdDF.collect():
-            currentKeySchemaId = sc.broadcast(valueRow.keySchemaId)
+            currentKeySchemaId = sc.broadcast(valueRow.asDict()[key_schema_column])
             # currentKeySchema = sc.broadcast(getSchema(currentKeySchemaId.value))
 
-            currentValueSchemaId = sc.broadcast(valueRow.valueSchemaId)
+            currentValueSchemaId = sc.broadcast(valueRow.asDict()[value_schema_column])
             # currentValueSchema = sc.broadcast(getSchema(currentValueSchemaId.value))
 
             filterDF = df_batch.filter(
-                (fn.col('keySchemaId') == currentKeySchemaId.value)
+                (fn.col(key_schema_column) == currentKeySchemaId.value)
                 &
-                (fn.col('valueSchemaId') == currentValueSchemaId.value)
+                (fn.col(value_schema_column) == currentValueSchemaId.value)
             )
 
             # TODO: process each column with SchemaRegistry
@@ -322,7 +352,8 @@ def staged_to_curated(spark, database, table_name, environment):
                     # Try to convert to Delta ?
                     raise NotImplemented
                 dt = DeltaTable.forPath(spark, output_path)
-                
+
+                # Need to fill payload before with schema.
                 dfUpdated = filterDF.filter("value.op != 'd'").select("value.after.*", "value.op").union(
                     filterDF.filter("value.op = 'd'").select("value.before.*", "value.op")
                 )

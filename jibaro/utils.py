@@ -6,6 +6,11 @@ def path_exists(spark, path):
         sc._jsc.hadoopConfiguration(),
     )
     return fs.exists(sc._jvm.org.apache.hadoop.fs.Path(path))
+    ###############################
+    # This method support wildcard
+    # hpath = sc._jvm.org.apache.hadoop.fs.Path(path)
+    # fs = hpath.getFileSystem(sc._jsc.hadoopConfiguration())
+    # return len(fs.globStatus(hpath)) > 0
 
 def delete_path(spark, path):
     sc = spark.sparkContext

@@ -1,6 +1,6 @@
 from pyspark.sql import SparkSession
 
-from jibaro.datalake.cdc import kafka_to_raw, raw_to_staged
+from jibaro.datalake.cdc import kafka_to_raw, raw_to_staged, staged_to_curated
 
 from jibaro.settings import settings
 import sys
@@ -13,7 +13,7 @@ content_type = 'json'
 
 spark = SparkSession.builder.appName("Spark Streaming Delta - raw to staged").getOrCreate()
 
-# kafka_settings = settings.kafka_settings['local']
+kafka_settings = settings.kafka_settings['local']
 
 # kafka_to_raw(
 #     spark=spark,
@@ -22,13 +22,21 @@ spark = SparkSession.builder.appName("Spark Streaming Delta - raw to staged").ge
 #     topic=table_name
 # )
 
-raw_to_staged(
+# raw_to_staged(
+#     spark=spark,
+#     database='kafka',
+#     table_name=table_name,
+#     environment='local',
+#     content_type=content_type
+# )
+
+staged_to_curated(
     spark=spark,
     database='kafka',
     table_name=table_name,
-    environment='local',
-    content_type=content_type
+    environment='local'
 )
+
 
 spark.stop()
 
