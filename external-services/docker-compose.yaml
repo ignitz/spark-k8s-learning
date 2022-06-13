@@ -98,7 +98,7 @@ services:
       - connect
     restart: unless-stopped
     ports:
-      - "10000:10000"
+      - "7777:7777"
     volumes:
       - ./kowl/config.yaml:/config.yaml
     environment:
@@ -110,6 +110,8 @@ services:
     hostname: postgres
     container_name: postgres
     restart: unless-stopped
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
     ports:
      - 5432:5432
     environment:
@@ -128,10 +130,94 @@ services:
       MINIO_ROOT_USER: minio
       MINIO_ROOT_PASSWORD: miniominio
     ## uncomment to persist data in minio 
-    # volumes:
-    #   - ./data/minio:/data
+    volumes:
+      - ./data/minio:/data
     command: server /data --console-address ":9001"
+
+  ####################################################################
+  # Trino
+  ####################################################################
+  trino-coordinator:
+    image: "trinodb/trino:latest"
+    ports:
+      - '8080:8080'
+    volumes:
+      - ./trino/catalog:/etc/trino/catalog:ro
+      - ./trino/coordinator/etc/config.properties:/etc/trino/config.properties:ro
+      - ./trino/coordinator/etc/jvm.config:/etc/trino/jvm.config:ro
+      - ./trino/coordinator/etc/node.properties:/etc/trino/node.properties:ro
+    depends_on:
+      - hive
+      - trino-worker
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 3G
+
+  trino-worker:
+    image: "trinodb/trino:latest"
+    volumes:
+      - ./trino/catalog:/etc/trino/catalog:ro
+      - ./trino/worker/etc/config.properties:/etc/trino/config.properties:ro
+      - ./trino/worker/etc/jvm.config:/etc/trino/jvm.config:ro
+      - ./trino/worker/etc/node.properties:/etc/trino/node.properties:ro
+    depends_on:
+      - hive
+    deploy:
+      mode: replicated
+      replicas: 1
+      resources:
+        limits:
+          cpus: "2"
+          memory: 6G
+
+  superset:
+    build: ./superset
+    container_name: superset
+    hostname: superset
+    ports:
+      - "8088:8088"
+    volumes:
+      - superset-data:/app/superset_home
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+  ###################################################################
+  # Hive
+  ###################################################################
+  # mariadb:
+  #   image: 'mariadb:latest'
+  #   hostname: mariadb
+  #   ports:
+  #     - '3306:3306'
+  #   environment:
+  #     MYSQL_ROOT_PASSWORD: admin
+  #     MYSQL_USER: admin
+  #     MYSQL_PASSWORD: admin
+  #     MYSQL_DATABASE: metastore_db
+  hive:
+    build: ./hive
+    container_name: hive
+    hostname: hive
+    ports:
+      - '9083:9083' # Metastore Thrift
+      - '10000:10000'
+      - '10002:10002'
+    volumes:
+      - ./hive/conf/metastore-site_psql.xml:/opt/apache-hive-metastore-3.0.0-bin/conf/metastore-site.xml:ro
+    environment:
+      METASTORE_DB_HOSTNAME: postgres
+    depends_on:
+      - postgres
+      - minio
       
 networks:
   default:
     name: kind
+
+volumes:
+  superset-data:
+    driver: local

@@ -42,7 +42,7 @@ make kafka-setup
 # make kafka-destroy
 ```
 
-Check with [Kowl](http://localhost:10000/topics) if data are sent to Kafka:
+Check with [Kowl](http://localhost:7777/topics) if data are sent to Kafka:
 
 ![Kowl Topics](docs/img/kowl-topics.png)
 
@@ -207,4 +207,6 @@ After the DAG is completed, you can check the output in Minio's datalake bucket 
 - [x] Automatic compact files in Delta Lake
 - [x] Automatic vacuum files in Delta Lake
 - [x] Create automatic history in `_history` folder to inspect metrics like numberoffiles for each version
-- [ ] Add Trino to connect to Data Lake
+- [x] Add Trino to connect to Data Lake
+- [x] Add hive metastore with postgresql
+- [ ] Add support to Spark use Hive or Jibaro libray use SQL in Trino.
