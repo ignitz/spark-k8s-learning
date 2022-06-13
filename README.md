@@ -145,6 +145,7 @@ sed -i 's:^dags_folder = .*:dags_folder = '`pwd`'/airflow\/dags:g' $HOME/airflow
 sed -i 's/^remote_logging = .*/remote_logging = True/g' $HOME/airflow/airflow.cfg
 sed -i 's/^remote_log_conn_id = .*/remote_log_conn_id = AirflowS3Logs/g' $HOME/airflow/airflow.cfg
 sed -i 's/^remote_base_log_folder = .*/remote_base_log_folder = s3:\/\/airflow-logs\/logs/g' $HOME/airflow/airflow.cfg
+sed -i 's/^web_server_port = .*/web_server_port = 8000/g' $HOME/airflow/airflow.cfg
 ```
 
 Then run:
@@ -210,3 +211,5 @@ After the DAG is completed, you can check the output in Minio's datalake bucket 
 - [x] Add Trino to connect to Data Lake
 - [x] Add hive metastore with postgresql
 - [ ] Add support to Spark use Hive or Jibaro libray use SQL in Trino.
+- [ ] Airflow on Kubernetes with Official Helm Chart
+- [ ] Airflow allow to send spark job to kubernetes
