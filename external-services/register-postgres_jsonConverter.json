@@ -12,6 +12,10 @@
     "schema.include.list": "inventory,public",
     "tombstones.on.delete": "false",
     "snapshot.mode": "initial",
-    "slot.name": "inventory"
+    "slot.name": "inventory",
+    "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "key.converter.schemas.enable": "true",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter.schemas.enable": "true"
   }
 }
