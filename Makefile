@@ -11,6 +11,7 @@ create-kind: ## Setup environment
 helm-add: ## Helm Add repositories
 	@helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 	@helm repo add spark-operator https://googlecloudplatform.github.io/spark-on-k8s-operator
+	@helm repo add apache-airflow https://airflow.apache.org
 	@helm repo update
 
 .PHONY: kafka-setup

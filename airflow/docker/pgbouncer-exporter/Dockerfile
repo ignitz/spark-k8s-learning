@@ -1,0 +1,1 @@
+FROM apache/airflow:airflow-pgbouncer-exporter-2021.09.22-0.12.0
