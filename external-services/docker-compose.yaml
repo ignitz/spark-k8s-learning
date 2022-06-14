@@ -110,8 +110,11 @@ services:
     hostname: postgres
     container_name: postgres
     restart: unless-stopped
+    # Uncomment to use data folder to persist data
+    # volumes:
+    #   - ./data/postgres:/var/lib/postgresql/data
     volumes:
-      - ./data/postgres:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data
     ports:
      - 5432:5432
     environment:
@@ -130,8 +133,10 @@ services:
       MINIO_ROOT_USER: minio
       MINIO_ROOT_PASSWORD: miniominio
     ## uncomment to persist data in minio 
+    # volumes:
+    #   - ./data/minio:/data
     volumes:
-      - ./data/minio:/data
+      - minio:/data
     command: server /data --console-address ":9001"
 
   ####################################################################
@@ -220,4 +225,8 @@ networks:
 
 volumes:
   superset-data:
+    driver: local
+  minio:
+    driver: local
+  postgres-data:
     driver: local
