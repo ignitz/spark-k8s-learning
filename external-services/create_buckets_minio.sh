@@ -1,6 +1,7 @@
 #!/bin/bash
 
 buckets=(
+    airflow-artifacts
     airflow-logs
     spark-artifacts
     spark-control

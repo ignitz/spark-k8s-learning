@@ -1,10 +1,55 @@
-defaultAirflowRepository: airflow
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+---
+# Default values for airflow.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Provide a name to substitute for the full names of resources
+fullnameOverride: ""
+
+# Provide a name to substitute for the name of the chart
+nameOverride: ""
+
+# Provide a Kubernetes version (used for API Version selection) to override the auto-detected version
+kubeVersionOverride: ""
+
+# User and group of airflow user
+uid: 50000
+gid: 0
+
+# Default security context for airflow
+securityContext: {}
+#  runAsUser: 50000
+#  fsGroup: 0
+#  runAsGroup: 0
+
+# Airflow home directory
+# Used for mount paths
+airflowHome: /opt/airflow
+
+# Default airflow repository -- overrides all the specific images below
+defaultAirflowRepository: ignitz/airflow
 
 # Default airflow tag to deploy
 defaultAirflowTag: "latest"
 
 # Airflow version (Used to make some decisions based on Airflow Version being deployed)
-airflowVersion: "2.3.0"
+airflowVersion: "2.3.2"
 
 # Images
 images:
@@ -16,7 +61,7 @@ images:
   # all the 'run-airflow-migrations' and 'wait-for-airflow-migrations' containers/jobs
   # will use the images from 'defaultAirflowRepository:defaultAirflowTag' values
   # to run and wait for DB migrations .
-  useDefaultImageForMigration: true
+  useDefaultImageForMigration: false
   # timeout (in seconds) for airflow-migrations to complete
   migrationsWaitTimeout: 60
   pod_template:
@@ -59,6 +104,9 @@ labels: {}
 
 # Ingress configuration
 ingress:
+  # Enable all ingress resources (deprecated - use ingress.web.enabled and ingress.flower.enabled)
+  enabled: ~
+
   # Configs for the Ingress of the web Service
   web:
     # Enable web ingress resource
@@ -73,9 +121,12 @@ ingress:
     # The pathType for the above path (used only with Kubernetes v1.19 and above)
     pathType: "ImplementationSpecific"
 
+    # The hostname for the web Ingress (Deprecated - renamed to `ingress.web.hosts`)
+    host: ""
+
     # The hostnames or hosts configuration for the web Ingress
     hosts:
-    - name: "airflow"
+    - name: "airflow.localhost"
       # configs for web Ingress TLS
       tls:
         # Enable TLS termination for the web Ingress
@@ -85,6 +136,13 @@ ingress:
 
     # The Ingress Class for the web Ingress (used only with Kubernetes v1.19 and above)
     ingressClassName: ""
+
+    # configs for web Ingress TLS (Deprecated - renamed to `ingress.web.hosts[*].tls`)
+    tls:
+      # Enable TLS termination for the web Ingress
+      enabled: false
+      # the name of a pre-created Secret containing a TLS private key and certificate
+      secretName: ""
 
     # HTTP paths to add to the web Ingress before the default path
     precedingPaths: []
@@ -110,13 +168,13 @@ ingress:
     host: ""
 
     # The hostnames or hosts configuration for the flower Ingress
-    hosts: []
-    # - name: ""
-    #   tls:
-    #     # Enable TLS termination for the flower Ingress
-    #     enabled: false
-    #     # the name of a pre-created Secret containing a TLS private key and certificate
-    #     secretName: ""
+    hosts:
+    - name: "flower.localhost"
+      tls:
+        # Enable TLS termination for the flower Ingress
+        enabled: false
+        # the name of a pre-created Secret containing a TLS private key and certificate
+        secretName: ""
 
     # The Ingress Class for the flower Ingress (used only with Kubernetes v1.19 and above)
     ingressClassName: ""
@@ -169,7 +227,7 @@ rbac:
 
 # Airflow executor
 # One of: LocalExecutor, LocalKubernetesExecutor, CeleryExecutor, KubernetesExecutor, CeleryKubernetesExecutor
-executor: "KubernetesExecutor"
+executor: "CeleryKubernetesExecutor"
 
 # If this is true and using LocalExecutor/KubernetesExecutor/CeleryKubernetesExecutor, the scheduler's
 # service account will have access to communicate with the api-server and launch pods.
@@ -179,14 +237,31 @@ allowPodLaunching: true
 
 # Environment variables for all airflow containers
 env:
-- name: "ENV"
-  value: "DEV"
+  - name: "ENV"
+    value: "DEV"
 
 # Secrets for all airflow containers
-secret:
-- envName: "AIRFLOW_CONN_AWS"
-  secretName: "{{ .Release.Name }}-airflow-connections"
-  secretKey: "AIRFLOW_CONN_AWS"
+# secret:
+#   - envName: "AIRFLOW_CONN_AWS"
+#     secretName: '{{ .Release.Name }}-airflow-connections'
+#     secretKey: "AIRFLOW_CONN_AWS"
+
+# Enables selected built-in secrets that are set via environment variables by default.
+# Those secrets are provided by the Helm Chart secrets by default but in some cases you
+# might want to provide some of those variables with _CMD or _SECRET variable, and you should
+# in this case disable setting of those variables by setting the relevant configuration to false.
+enableBuiltInSecretEnvVars:
+  AIRFLOW__CORE__FERNET_KEY: true
+  # For Airflow <2.3, backward compatibility; moved to [database] in 2.3
+  AIRFLOW__CORE__SQL_ALCHEMY_CONN: true
+  AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: true
+  AIRFLOW_CONN_AIRFLOW_DB: true
+  AIRFLOW__WEBSERVER__SECRET_KEY: true
+  AIRFLOW__CELERY__CELERY_RESULT_BACKEND: true
+  AIRFLOW__CELERY__RESULT_BACKEND: true
+  AIRFLOW__CELERY__BROKER_URL: true
+  AIRFLOW__ELASTICSEARCH__HOST: true
+  AIRFLOW__ELASTICSEARCH__ELASTICSEARCH_HOST: true
 
 # Extra secrets that will be managed by the chart
 # (You can use them with extraEnv or extraEnvFrom or some of the extraVolumes values).
@@ -194,12 +269,53 @@ secret:
 #    * key (can be templated) is the name of the secret that will be created
 #    * value: an object with the standard 'data' or 'stringData' key (or both).
 #          The value associated with those keys must be a string (can be templated)
+# extraSecrets:
+#   '{{ .Release.Name }}-airflow-connections':
+#     type: 'Opaque'
+#     data: |
+#       AIRFLOW_CONN_AWS: 'eyAiYXdzX2FjY2Vzc19rZXlfaWQiOiAibWluaW8iLCAiYXdzX3NlY3JldF9hY2Nlc3Nfa2V5IjogIm1pbmlvbWluaW8iLCAiaG9zdCI6ICJodHRwOi8vbWluaW86OTAwMCIgfQo='
+
 extraSecrets:
   '{{ .Release.Name }}-airflow-connections':
     type: 'Opaque'
     data: |
-      AIRFLOW_CONN_AWS: 'eyAiYXdzX2FjY2Vzc19rZXlfaWQiOiAibWluaW8iLCAiYXdzX3NlY3JldF9hY2Nlc3Nfa2V5Ijog
-Im1pbmlvbWluaW8iLCAiaG9zdCI6ICJodHRwOi8vbWluaW86OTAwMCIgfQo='
+      AIRFLOW_CONN_AWS: 'YXdzOi8vbWluaW86bWluaW9taW5pbz9hd3NfYWNjZXNzX2tleV9pZD1taW5pbyZhd3Nfc2VjcmV0X2FjY2Vzc19rZXk9bWluaW9taW5pbyZob3N0PWh0dHA6XC9cL21pbmlvOjkwMDAK'
+# 'aws://minio:miniominio?aws_access_key_id=minio&aws_secret_access_key=miniominio&host=http:\/\/minio:9000'
+
+
+# Extra ConfigMaps that will be managed by the chart
+# (You can use them with extraEnv or extraEnvFrom or some of the extraVolumes values).
+# The format is "key/value" where
+#    * key (can be templated) is the name of the configmap that will be created
+#    * value: an object with the standard 'data' key.
+#          The value associated with this keys must be a string (can be templated)
+extraConfigMaps: {}
+# eg:
+# extraConfigMaps:
+#   '{{ .Release.Name }}-airflow-variables':
+#     data: |
+#       AIRFLOW_VAR_HELLO_MESSAGE: "Hi!"
+#       AIRFLOW_VAR_KUBERNETES_NAMESPACE: "{{ .Release.Namespace }}"
+
+# Extra env 'items' that will be added to the definition of airflow containers
+# a string is expected (can be templated).
+# TODO: difference from `env`? This is a templated string. Probably should template `env` and remove this.
+extraEnv: ~
+# eg:
+# extraEnv: |
+#   - name: AIRFLOW__CORE__LOAD_EXAMPLES
+#     value: 'True'
+
+# Extra envFrom 'items' that will be added to the definition of airflow containers
+# A string is expected (can be templated).
+# extraEnvFrom: |
+#   - secretRef:
+#       name: '{{ .Release.Name }}-airflow-connections'
+#   - configMapRef:
+#       name: '{{ .Release.Name }}-airflow-variables'
+extraEnvFrom: |
+  - secretRef:
+      name: '{{ .Release.Name }}-airflow-connections'
 
 # Airflow database & redis config
 data:
@@ -231,8 +347,13 @@ data:
   # Note: brokerUrl can only be set during install, not upgrade
   brokerUrl: ~
 
+# Fernet key settings
+# Note: fernetKey can only be set during install, not upgrade
+fernetKey: ~
+fernetKeySecretName: ~
 
 # Flask secret key for Airflow Webserver: `[webserver] secret_key` in airflow.cfg
+webserverSecretKey: ~
 webserverSecretKeySecretName: airflow-secret
 
 # In order to use kerberos you need to create secret containing the keytab file
@@ -257,6 +378,40 @@ webserverSecretKeySecretName: airflow-secret
 #  Alternatively, instead of manually creating the secret, it is possible to specify
 #  kerberos.keytabBase64Content parameter. This parameter should contain base64 encoded keytab.
 #
+
+kerberos:
+  enabled: false
+  ccacheMountPath: /var/kerberos-ccache
+  ccacheFileName: cache
+  configPath: /etc/krb5.conf
+  keytabBase64Content: ~
+  keytabPath: /etc/airflow.keytab
+  principal: airflow@FOO.COM
+  reinitFrequency: 3600
+  config: |
+    # This is an example config showing how you can use templating and how "example" config
+    # might look like. It works with the test kerberos server that we are using during integration
+    # testing at Apache Airflow (see `scripts/ci/docker-compose/integration-kerberos.yml` but in
+    # order to make it production-ready you must replace it with your own configuration that
+    # Matches your kerberos deployment. Administrators of your Kerberos instance should
+    # provide the right configuration.
+
+    [logging]
+    default = "FILE:{{ template "airflow_logs_no_quote" . }}/kerberos_libs.log"
+    kdc = "FILE:{{ template "airflow_logs_no_quote" . }}/kerberos_kdc.log"
+    admin_server = "FILE:{{ template "airflow_logs_no_quote" . }}/kadmind.log"
+
+    [libdefaults]
+    default_realm = FOO.COM
+    ticket_lifetime = 10h
+    renew_lifetime = 7d
+    forwardable = true
+
+    [realms]
+    FOO.COM = {
+      kdc = kdc-server.foo.com
+      admin_server = admin_server.foo.com
+    }
 
 # Airflow Worker Config
 workers:
@@ -361,13 +516,36 @@ workers:
   # Launch additional containers into worker.
   # Note: If used with KubernetesExecutor, you are responsible for signaling sidecars to exit when the main
   # container finishes so Airflow can continue the worker shutdown process!
-  extraContainers: []
+  extraContainers:
+    - name: s3-sync
+      image: ignitz/s3sync:latest
+      imagePullPolicy: IfNotPresent
+      volumeMounts:
+        - mountPath: "/opt/airflow/dags"
+          name: airflow-dags
+      env:
+        - name: AWS_ACCESS_KEY_ID
+          value: "minio"
+        - name: AWS_SECRET_ACCESS_KEY
+          value: "miniominio"
+        - name: AWS_BUCKET
+          value: "airflow-artifacts"
+        - name: KEY_PATH
+          value: "dags"
+        - name: DEST_PATH
+          value: "/opt/airflow/dags"
+        - name: INTERVAL
+          value: "10"
   # Add additional init containers into workers.
   extraInitContainers: []
 
   # Mount additional volumes into worker.
-  extraVolumes: []
-  extraVolumeMounts: []
+  extraVolumes: 
+    - name: airflow-dags
+      emptyDir: {}
+  extraVolumeMounts:
+    - name: airflow-dags
+      mountPath: "/opt/airflow/dags"
 
   # Select certain nodes for airflow worker pods.
   nodeSelector: {}
@@ -476,13 +654,37 @@ scheduler:
   safeToEvict: true
 
   # Launch additional containers into scheduler.
-  extraContainers: []
+  extraContainers: 
+    - name: s3-sync
+      image: ignitz/s3sync:latest
+      imagePullPolicy: IfNotPresent
+      volumeMounts:
+        - mountPath: "/opt/airflow/dags"
+          name: airflow-dags
+      env:
+        - name: AWS_ACCESS_KEY_ID
+          value: "minio"
+        - name: AWS_SECRET_ACCESS_KEY
+          value: "miniominio"
+        - name: AWS_BUCKET
+          value: "airflow-artifacts"
+        - name: KEY_PATH
+          value: "dags"
+        - name: DEST_PATH
+          value: "/opt/airflow/dags"
+        - name: INTERVAL
+          value: "10"
+  
   # Add additional init containers into scheduler.
   extraInitContainers: []
 
   # Mount additional volumes into scheduler.
-  extraVolumes: []
-  extraVolumeMounts: []
+  extraVolumes: 
+    - name: airflow-dags
+      emptyDir: {}
+  extraVolumeMounts:
+    - name: airflow-dags
+      mountPath: "/opt/airflow/dags"
 
   # Select certain nodes for airflow scheduler pods.
   nodeSelector: {}
@@ -734,16 +936,36 @@ webserver:
     password: admin
 
   # Launch additional containers into webserver.
-  extraContainers:
+  extraContainers: 
     - name: s3-sync
-      image: my-company/s3-sync:latest
-      imagePullPolicy: Always
+      image: ignitz/s3sync:latest
+      imagePullPolicy: IfNotPresent
+      volumeMounts:
+        - mountPath: "/opt/airflow/dags"
+          name: airflow-dags
+      env:
+        - name: AWS_ACCESS_KEY_ID
+          value: "minio"
+        - name: AWS_SECRET_ACCESS_KEY
+          value: "miniominio"
+        - name: AWS_BUCKET
+          value: "airflow-artifacts"
+        - name: KEY_PATH
+          value: "dags"
+        - name: DEST_PATH
+          value: "/opt/airflow/dags"
+        - name: INTERVAL
+          value: "10"
   # Add additional init containers into webserver.
   extraInitContainers: []
 
   # Mount additional volumes into webserver.
-  extraVolumes: []
-  extraVolumeMounts: []
+  extraVolumes: 
+    - name: airflow-dags
+      emptyDir: {}
+  extraVolumeMounts:
+    - name: airflow-dags
+      mountPath: "/opt/airflow/dags"
 
   # This string (can be templated) will be mounted into the Airflow Webserver as a custom
   # webserver_config.py. You can bake a webserver_config.py in to your image instead.
@@ -861,13 +1083,36 @@ triggerer:
   safeToEvict: true
 
   # Launch additional containers into triggerer.
-  extraContainers: []
+  extraContainers: 
+    - name: s3-sync
+      image: ignitz/s3sync:latest
+      imagePullPolicy: IfNotPresent
+      volumeMounts:
+        - mountPath: "/opt/airflow/dags"
+          name: airflow-dags
+      env:
+        - name: AWS_ACCESS_KEY_ID
+          value: "minio"
+        - name: AWS_SECRET_ACCESS_KEY
+          value: "miniominio"
+        - name: AWS_BUCKET
+          value: "airflow-artifacts"
+        - name: KEY_PATH
+          value: "dags"
+        - name: DEST_PATH
+          value: "/opt/airflow/dags"
+        - name: INTERVAL
+          value: "10"
   # Add additional init containers into triggerers.
   extraInitContainers: []
 
   # Mount additional volumes into triggerer.
-  extraVolumes: []
-  extraVolumeMounts: []
+  extraVolumes: 
+    - name: airflow-dags
+      emptyDir: {}
+  extraVolumeMounts:
+    - name: airflow-dags
+      mountPath: "/opt/airflow/dags"
 
   # Select certain nodes for airflow triggerer pods.
   nodeSelector: {}
@@ -1299,7 +1544,7 @@ cleanup:
 # Configuration for postgresql subchart
 # Not recommended for production
 postgresql:
-  enabled: true
+  enabled: false
   postgresqlPassword: postgres
   postgresqlUsername: postgres
 
@@ -1317,14 +1562,18 @@ config:
   core:
     dags_folder: '{{ include "airflow_dags" . }}'
     # This is ignored when used with the official Docker image
-    load_examples: 'False'
     executor: '{{ .Values.executor }}'
     # For Airflow 1.10, backward compatibility; moved to [logging] in 2.0
     colored_console_log: 'False'
-    remote_logging: '{{- ternary "True" "False" .Values.elasticsearch.enabled }}'
+    remote_logging: 'True'
+    remote_base_log_folder: s3://airflow-logs/logs
+    remote_log_conn_id: aws
+    encrypt_s3_logs: 'False'
   logging:
-    remote_logging: '{{- ternary "True" "False" .Values.elasticsearch.enabled }}'
-    colored_console_log: 'False'
+    remote_logging: 'True'
+    remote_base_log_folder: s3://airflow-logs/logs
+    remote_log_conn_id: aws
+    colored_console_log: 'True'
   metrics:
     statsd_on: '{{ ternary "True" "False" .Values.statsd.enabled }}'
     statsd_port: 9125
@@ -1336,6 +1585,8 @@ config:
     rbac: 'True'
   celery:
     worker_concurrency: 16
+  database:
+    load_default_connections: 'True'
   scheduler:
     # statsd params included for Airflow 1.10 backward compatibility; moved to [metrics] in 2.0
     statsd_on: '{{ ternary "True" "False" .Values.statsd.enabled }}'
