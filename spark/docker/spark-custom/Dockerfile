@@ -23,6 +23,7 @@ USER root
 
 # Setup dependencies for Google Cloud Storage access.
 RUN rm $SPARK_HOME/jars/guava-14.0.1.jar
+# Exception in thread "main" java.lang.NoSuchMethodError: 'void com.google.common.base.Preconditions.checkArgument(boolean, java.lang.String, java.lang.Object, java.lang.Object)'
 ADD https://repo1.maven.org/maven2/com/google/guava/guava/23.0/guava-23.0.jar $SPARK_HOME/jars
 RUN chmod 644 $SPARK_HOME/jars/guava-23.0.jar
 # Add the connector jar needed to access Google Cloud Storage using the Hadoop FileSystem API.
