@@ -15,6 +15,9 @@ Repository to test and development in Spark on K8s
 
 ```shell
 make create-kind
+
+# To clean-up
+kind delete cluster
 ```
 
 ## Install Grafana and Prometheus
