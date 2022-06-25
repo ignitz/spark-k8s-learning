@@ -50,7 +50,7 @@ class SparkOperator(BaseOperator):
         kubernetes_conn_id: str = "kubernetes_default",
         api_group: str = 'sparkoperator.k8s.io',
         api_version: str = 'v1beta2',
-        image: str = 'spark3:latest',
+        image: str = 'spark-custom:latest',
         main_application_file: str = 's3a://spark-artifacts/pyspark/pokeapi.py',
         packages: List[str] = [],
         jars: List[str] = [],

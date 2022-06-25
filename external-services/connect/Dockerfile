@@ -13,4 +13,4 @@ RUN confluent-hub install --no-prompt debezium/debezium-connector-mysql:${DEBEZI
 RUN confluent-hub install --no-prompt debezium/debezium-connector-sqlserver:${DEBEZIUM_VERSION}
 # MongoDB connector 
 # https://www.confluent.io/hub/debezium/debezium-connector-mongodb
-RUN confluent-hub install debezium/debezium-connector-mongodb:${DEBEZIUM_VERSION}
+RUN confluent-hub install --no-prompt debezium/debezium-connector-mongodb:${DEBEZIUM_VERSION}
