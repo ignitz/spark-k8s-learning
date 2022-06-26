@@ -11,7 +11,8 @@ content_type = 'json'
 # table_name = 'airflow.public.ab_user'
 # content_type = 'avro'
 
-spark = SparkSession.builder.appName("Spark Streaming Delta - raw to staged").getOrCreate()
+spark = SparkSession.builder.appName(
+    "Spark Streaming Delta - raw to staged").getOrCreate()
 
 kafka_settings = settings.kafka_settings['local']
 
@@ -39,4 +40,3 @@ staged_to_curated(
 
 
 spark.stop()
-

@@ -17,4 +17,5 @@ kafka_to_raw(
     topic=topic
 )
 
+# For Spark 3.1.x
 spark.stop()

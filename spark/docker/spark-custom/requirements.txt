@@ -2,3 +2,4 @@
 requests
 pydantic
 confluent-kafka[avro,json,protobuf]>=1.4.2
+trino>=0.313.0

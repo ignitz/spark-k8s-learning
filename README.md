@@ -199,7 +199,7 @@ After the DAG is completed, you can check the output in Minio's datalake bucket 
 - [x] Export SparkUI to bucket to Spark-History-server
 - [ ] Export metrics to Prometheus
 - [ ] Documentation of SparkOperator
-- [ ] Support to spark with `.jar` files
+- [x] Support to spark with `.jar` files
 - [x] Create a lib and send with a `.zip` file with `--pyFiles`
 - [ ] Support ENV
 - [ ] Support secrets

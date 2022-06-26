@@ -34,7 +34,7 @@ spark_config_common = {
     # Spark History Server
     # "spark.history.provider": "org.apache.hadoop.fs.s3a.S3AFileSystem",
     # "spark.history.fs.logDirectory": "s3a://spark-history/logs",
-    
+
     # Tunning
     # Spark Streaming
     "spark.streaming.blockInterval": "200",
@@ -87,6 +87,7 @@ spark_config = {
     }
 }
 
+
 class KubernetesHookCustom(KubernetesHook):
     def __init__(
         self,
@@ -103,7 +104,7 @@ class KubernetesHookCustom(KubernetesHook):
             config_file=config_file,
             in_cluster=in_cluster
         )
-    
+
     def delete_custom_object(
         self, group: str,
         version: str,
@@ -134,7 +135,7 @@ class KubernetesHookCustom(KubernetesHook):
             self.log.warning(f"Deleted {name} SparkApplication.")
         except client.rest.ApiException:
             self.log.info(f"SparkApp {name} not found.")
-        
+
 
 class SparkOperator(BaseOperator):
     """
@@ -257,7 +258,6 @@ class SparkOperator(BaseOperator):
         default_confs = spark_config[self.sparkVersion]['minio']
         self.sparkConf = {**default_confs, **spark_confs}
 
-
     def _log_driver(self, application_state: str, response: dict) -> None:
         if not self.attach_log:
             return
@@ -296,7 +296,7 @@ class SparkOperator(BaseOperator):
         }
 
         body_dict['spec'] = {
-            'type': 'Python', # TODO: Add support for .py and .jar
+            'type': 'Python',  # TODO: Add support for .py and .jar
             'pythonVersion': '3',
             'mode': 'cluster',
             'image': self.image,
@@ -356,7 +356,6 @@ class SparkOperator(BaseOperator):
     def execute(self, context: 'Context') -> None:
         self.log.info(context)
         self.log.info("Starting SparkApplication: %s", self.application_name)
-        # TODO: Delete before send application
         response = self._create_spark_application(context)
         self.log.info("SparkApplication started: %s", self.application_name)
         self.log.info("SparkApplication response: %s", response)
@@ -368,9 +367,16 @@ class SparkOperator(BaseOperator):
             self.log.info(self.hook.get_pod_logs(
                 self.application_name + '-driver', namespace=self.namespace).data.decode())
         except AirflowException as ae:
-            # TODO: get logs from sparkapplications.sparkoperator.k8s.io resource when fail
             self.log.info(self.hook.get_pod_logs(
-                self.application_name + '-driver', namespace=self.namespace).data.decode())    
+                self.application_name + '-driver', namespace=self.namespace).data.decode())
+            error_obj = self.hook.get_custom_object(
+                group=self.api_group,
+                version=self.api_version,
+                plural=self.plural,
+                name=self.application_name,
+                namespace=self.namespace,
+            )
+            self.log.error(error_obj['status']['applicationState']['error'])
             raise ae
         finally:
             # delete sparkapplication
@@ -383,4 +389,3 @@ class SparkOperator(BaseOperator):
             )
 
         self.log.info("SparkApplication finished: %s", self.application_name)
-        

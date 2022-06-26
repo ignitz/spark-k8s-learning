@@ -55,6 +55,4 @@ with DAG(
             kafka_raw >> raw_staged
             raw_staged >> staged_curated
 
-        
         kafka_group.set_upstream(start)
-    

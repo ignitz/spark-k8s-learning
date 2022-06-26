@@ -4,9 +4,11 @@ from jibaro.datalake.cdc import raw_to_staged
 import sys
 
 table_name = sys.argv[1]
-content_type = sys.argv[2]
 
-spark = SparkSession.builder.appName("Spark Streaming Delta - raw to staged").getOrCreate()
+content_type = sys.argv[2] if len(sys.argv) > 2 else 'avro'
+
+spark = SparkSession.builder.appName(
+    "Spark Streaming Delta - raw to staged").getOrCreate()
 
 raw_to_staged(
     spark=spark,
@@ -16,4 +18,5 @@ raw_to_staged(
     content_type=content_type
 )
 
+# For Spark 3.1.x
 spark.stop()
