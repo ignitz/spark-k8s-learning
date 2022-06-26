@@ -53,7 +53,7 @@ with DAG(
             raw_staged = SparkOperator(
                 task_id='spark_staged_' + topic.replace('.', '_'),
                 main_application_file='s3a://spark-artifacts/pyspark/develop/raw_to_staged.py',
-                arguments=[topic],
+                arguments=[topic, 'avro'],
                 pyFiles=['s3a://spark-artifacts/lib/jibaro.zip'],
                 dag=dag,
             )

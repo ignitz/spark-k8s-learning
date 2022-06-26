@@ -216,3 +216,8 @@ After the DAG is completed, you can check the output in Minio's datalake bucket 
 - [ ] Add support to Spark use Hive or Jibaro libray use SQL in Trino.
 - [ ] Airflow on Kubernetes with Official Helm Chart
 - [ ] Airflow allow to send spark job to kubernetes
+- [x] Compile spark-operator binary in amd64 and arm64 to Apple Silicon
+- [x] Update to Spark 3.2.1
+- [ ] Update to Spark 3.3.x (after the release of Delta Lake)
+- [ ] SparkOperator delete spark manifest after COMPLETED
+- [ ] SparkOperator get status error from SparkApplication and output on Airflow UI

@@ -14,6 +14,79 @@ import hashlib
 if TYPE_CHECKING:
     from airflow.utils.context import Context
 
+spark_config_common = {
+    # S3a protocol
+    "spark.hadoop.fs.s3a.impl": "org.apache.hadoop.fs.s3a.S3AFileSystem",
+    "spark.hadoop.fs.s3a.aws.credentials.provider": (
+        "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider"
+        + "," +
+        "com.amazonaws.auth.EnvironmentVariableCredentialsProvider"
+        + "," +
+        "com.amazonaws.auth.InstanceProfileCredentialsProvider"
+    ),
+    "spark.hadoop.mapreduce.fileoutputcommitter.algorithm.version": "2",
+    # Delta Lake releted
+    "spark.sql.extensions": "io.delta.sql.DeltaSparkSessionExtension",
+    "spark.sql.catalog.spark_catalog": "org.apache.spark.sql.delta.catalog.DeltaCatalog",
+    "spark.databricks.delta.retentionDurationCheck.enabled": "false",
+    # Spark History
+    "spark.eventLog.enabled": "true",
+    # Spark History Server
+    # "spark.history.provider": "org.apache.hadoop.fs.s3a.S3AFileSystem",
+    # "spark.history.fs.logDirectory": "s3a://spark-history/logs",
+    
+    # Tunning
+    # Spark Streaming
+    "spark.streaming.blockInterval": "200",
+    "spark.streaming.receiver.writeAheadLog.enable": "true",
+    "spark.streaming.backpressure.enabled": "true",
+    "spark.streaming.backpressure.pid.minRate": "10",
+    "spark.streaming.receiver.maxRate": "100",
+    "spark.streaming.kafka.maxRatePerPartition": "100",
+    "spark.streaming.backpressure.initialRate": "30",
+    # Split files
+    "spark.sql.files.maxRecordsPerFile": "17000000",
+}
+
+spark_config = {
+    "3.1.1": {
+        "minio": {
+            **spark_config_common,
+            # S3a protocol
+            "spark.hadoop.fs.s3a.endpoint": "http://minio:9000",
+            "spark.hadoop.fs.s3a.access.key": "minio",
+            "spark.hadoop.fs.s3a.secret.key": "miniominio",
+            "spark.hadoop.fs.s3a.path.style.access": "true",
+            "spark.hadoop.fs.s3a.impl": "org.apache.hadoop.fs.s3a.S3AFileSystem",
+            "spark.hadoop.fs.s3a.aws.credentials.provider": "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider",
+            # Spark History
+            "spark.eventLog.enabled": "true",
+            "spark.eventLog.dir": "s3a://spark-history/logs",
+            # "spark.history.provider": "org.apache.hadoop.fs.s3a.S3AFileSystem",
+            # "spark.history.fs.logDirectory": "s3a://spark-history/logs",
+        }
+    },
+    "3.2.1": {
+        "minio": {
+            **spark_config_common,
+            # S3a protocol
+            "spark.hadoop.fs.s3a.endpoint": "http://minio:9000",
+            "spark.hadoop.fs.s3a.access.key": "minio",
+            "spark.hadoop.fs.s3a.secret.key": "miniominio",
+            # Spark History
+            "spark.eventLog.enabled": "true",
+            "spark.eventLog.dir": "s3a://spark-history/logs",
+        },
+        "aws-us-east-1": {
+            **spark_config_common,
+            # S3a protocol
+            "spark.hadoop.fs.s3a.endpoint": "https://s3.us-east-1.amazonaws.com",
+            # Spark History
+            "spark.eventLog.enabled": "false",
+        }
+    }
+}
+
 
 class SparkOperator(BaseOperator):
     """
@@ -55,7 +128,7 @@ class SparkOperator(BaseOperator):
         packages: List[str] = [],
         jars: List[str] = [],
         pyFiles: List[str] = [],
-        spark_version: str = "3.1.1",
+        spark_version: str = "3.2.1",
         service_account: str = "spark",
         driver: Optional[Dict[str, Any]] = None,
         executor: Optional[Dict[str, Any]] = None,
@@ -133,31 +206,7 @@ class SparkOperator(BaseOperator):
         #   minExecutors: 1
         self.dynamicAllocation = dynamic_allocation
 
-        default_confs = {
-            # S3a protocol
-            "spark.hadoop.fs.s3a.endpoint": "http://minio:9000",
-            "spark.hadoop.fs.s3a.access.key": "minio",
-            "spark.hadoop.fs.s3a.secret.key": "miniominio",
-            "spark.hadoop.fs.s3a.path.style.access": "true",
-            "spark.hadoop.fs.s3a.impl": "org.apache.hadoop.fs.s3a.S3AFileSystem",
-            # Delta Lake releted
-            "spark.sql.extensions": "io.delta.sql.DeltaSparkSessionExtension",
-            "spark.sql.catalog.spark_catalog": "org.apache.spark.sql.delta.catalog.DeltaCatalog",
-            "spark.databricks.delta.retentionDurationCheck.enabled": "false",
-            # Spark Streaming
-            "spark.streaming.blockInterval": "200",
-            "spark.streaming.receiver.writeAheadLog.enable": "true",
-            "spark.streaming.backpressure.enabled": "true",
-            "spark.streaming.backpressure.pid.minRate": "10",
-            "spark.streaming.receiver.maxRate": "100",
-            "spark.streaming.kafka.maxRatePerPartition": "100",
-            "spark.streaming.backpressure.initialRate": "30",
-            # Spark Histopry
-            "spark.eventLog.enabled": "true",
-            "spark.eventLog.dir": "s3a://spark-history/logs",
-            # "spark.history.provider": "org.apache.hadoop.fs.s3a.S3AFileSystem",
-            # "spark.history.fs.logDirectory": "s3a://spark-history/logs",
-        }
+        default_confs = spark_config[self.sparkVersion]['minio']
         self.sparkConf = {**default_confs, **spark_confs}
 
 
@@ -268,11 +317,24 @@ class SparkOperator(BaseOperator):
                 # Sleep for 10 seconds for production environment
                 # time.sleep(10.0 + random.uniform(-1.0, 10.0))
                 time.sleep(1.0)
+            self.log.info(self.hook.get_pod_logs(
+                self.application_name + '-driver', namespace=self.namespace).data.decode())
         except AirflowException as ae:
             # TODO: get logs from sparkapplications.sparkoperator.k8s.io resource when fail
             self.log.info(self.hook.get_pod_logs(
                 self.application_name + '-driver', namespace=self.namespace).data.decode())    
             raise ae
+        finally:
+            # delete sparkapplication
+            pass
+            # TODO: Delete after send application
+            # api.delete_namespaced_custom_object(
+            #         group=self.api_group,
+            #         version=self.api_version,
+            #         namespace=self.namespace,
+            #         plural=self.plural,
+            #         name=self.application_name,
+            #     )
+
         self.log.info("SparkApplication finished: %s", self.application_name)
-        self.log.info(self.hook.get_pod_logs(
-            self.application_name + '-driver', namespace=self.namespace).data.decode())
+        

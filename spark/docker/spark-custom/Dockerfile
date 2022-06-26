@@ -24,6 +24,7 @@ USER root
 # Setup dependencies for Google Cloud Storage access.
 RUN rm $SPARK_HOME/jars/guava-14.0.1.jar
 # Exception in thread "main" java.lang.NoSuchMethodError: 'void com.google.common.base.Preconditions.checkArgument(boolean, java.lang.String, java.lang.Object, java.lang.Object)'
+# Consider update to guava-31.1-jre.jar
 ADD https://repo1.maven.org/maven2/com/google/guava/guava/23.0/guava-23.0.jar $SPARK_HOME/jars
 RUN chmod 644 $SPARK_HOME/jars/guava-23.0.jar
 # Add the connector jar needed to access Google Cloud Storage using the Hadoop FileSystem API.
@@ -32,39 +33,22 @@ RUN chmod 644 $SPARK_HOME/jars/guava-23.0.jar
 # ADD https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-latest_2.12.jar $SPARK_HOME/jars
 # RUN chmod 644 $SPARK_HOME/jars/spark-bigquery-latest_2.12.jar
 
-ARG SPARK_VERSION="3.1.3"
+ARG SPARK_VERSION="3.2.1"
+ARG HADOOP_VERSION="3.3.1"
 ARG AWS_JAVA_SDK_VERSION="1.11.534"
 
-# Add support to S3a connector.
-ADD https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/${SPARK_VERSION}/hadoop-aws-${SPARK_VERSION}.jar $SPARK_HOME/jars
-RUN chmod 644 $SPARK_HOME/jars/hadoop-aws-${SPARK_VERSION}.jar
-ADD https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk/${AWS_JAVA_SDK_VERSION}/aws-java-sdk-${AWS_JAVA_SDK_VERSION}.jar $SPARK_HOME/jars
-RUN chmod 644 $SPARK_HOME/jars/aws-java-sdk-${AWS_JAVA_SDK_VERSION}.jar
-ADD https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-core/${AWS_JAVA_SDK_VERSION}/aws-java-sdk-core-${AWS_JAVA_SDK_VERSION}.jar $SPARK_HOME/jars
-RUN chmod 644 $SPARK_HOME/jars/aws-java-sdk-core-${AWS_JAVA_SDK_VERSION}.jar
-ADD https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-dynamodb/${AWS_JAVA_SDK_VERSION}/aws-java-sdk-dynamodb-${AWS_JAVA_SDK_VERSION}.jar $SPARK_HOME/jars
-RUN chmod 644 $SPARK_HOME/jars/aws-java-sdk-dynamodb-${AWS_JAVA_SDK_VERSION}.jar
-ADD https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-kms/${AWS_JAVA_SDK_VERSION}/aws-java-sdk-kms-${AWS_JAVA_SDK_VERSION}.jar $SPARK_HOME/jars
-RUN chmod 644 $SPARK_HOME/jars/aws-java-sdk-kms-${AWS_JAVA_SDK_VERSION}.jar
-ADD https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-s3/${AWS_JAVA_SDK_VERSION}/aws-java-sdk-s3-${AWS_JAVA_SDK_VERSION}.jar $SPARK_HOME/jars
-RUN chmod 644 $SPARK_HOME/jars/aws-java-sdk-s3-${AWS_JAVA_SDK_VERSION}.jar
-ADD https://repo1.maven.org/maven2/org/apache/httpcomponents/httpclient/4.5.3/httpclient-4.5.3.jar $SPARK_HOME/jars
-RUN chmod 644 $SPARK_HOME/jars/httpclient-4.5.3.jar
-ADD https://repo1.maven.org/maven2/joda-time/joda-time/2.9.9/joda-time-2.9.9.jar $SPARK_HOME/jars
-RUN chmod 644 $SPARK_HOME/jars/joda-time-2.9.9.jar
+# Install maven packages
+COPY nop.py /root/nop.py
+# Use org.apache.hadoop:hadoop-cloud:${HADOOP_VERSION} with others cloud providers
+RUN spark-submit --packages \
+    org.apache.hadoop:hadoop-aws:${HADOOP_VERSION},org.apache.spark:spark-sql-kafka-0-10_2.12:${SPARK_VERSION},io.delta:delta-core_2.12:1.2.1 \
+    /root/nop.py && \
+    mv /root/.ivy2/jars/* $SPARK_HOME/jars/ && \
+    rm -rf /root/.ivy2
+RUN chmod 644 $SPARK_HOME/jars/*
 
-# Kafka libraries
-ADD https://repo1.maven.org/maven2/org/apache/spark/spark-sql-kafka-0-10_2.12/${SPARK_VERSION}/spark-sql-kafka-0-10_2.12-${SPARK_VERSION}.jar $SPARK_HOME/jars
-ADD https://repo1.maven.org/maven2/org/apache/spark/spark-token-provider-kafka-0-10_2.12/${SPARK_VERSION}/spark-token-provider-kafka-0-10_2.12-${SPARK_VERSION}.jar $SPARK_HOME/jars
-ADD https://repo1.maven.org/maven2/org/apache/kafka/kafka-clients/2.4.1/kafka-clients-2.4.1.jar $SPARK_HOME/jars
-ADD https://repo1.maven.org/maven2/org/apache/commons/commons-pool2/2.6.2/commons-pool2-2.6.2.jar $SPARK_HOME/jars
 # Avro library
 ADD https://repo1.maven.org/maven2/org/apache/spark/spark-avro_2.12/${SPARK_VERSION}/spark-avro_2.12-${SPARK_VERSION}.jar $SPARK_HOME/jars
-
-# Delta libraries
-ADD https://repo1.maven.org/maven2/io/delta/delta-core_2.12/1.0.1/delta-core_2.12-1.0.1.jar $SPARK_HOME/jars
-ADD https://repo1.maven.org/maven2/io/delta/delta-contribs_2.12/1.0.1/delta-contribs_2.12-1.0.1.jar $SPARK_HOME/jars
-
 
 # Install delta libraries
 RUN pip install --upgrade pip

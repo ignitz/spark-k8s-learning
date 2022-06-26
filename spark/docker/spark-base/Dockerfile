@@ -43,7 +43,7 @@ RUN set -ex && \
     rm -rf /root/.cache && rm -rf /var/cache/apt/*
 
 # SPARK
-ENV SPARK_VERSION 3.1.3
+ENV SPARK_VERSION 3.2.1
 ENV SPARK_PACKAGE spark-${SPARK_VERSION}-bin-hadoop3.2
 ENV SPARK_HOME /opt/spark
 # ENV SPARK_DIST_CLASSPATH="$HADOOP_HOME/etc/hadoop/*:$HADOOP_HOME/share/hadoop/common/lib/*:$HADOOP_HOME/share/hadoop/common/*:$HADOOP_HOME/share/hadoop/hdfs/*:$HADOOP_HOME/share/hadoop/hdfs/lib/*:$HADOOP_HOME/share/hadoop/hdfs/*:$HADOOP_HOME/share/hadoop/yarn/lib/*:$HADOOP_HOME/share/hadoop/yarn/*:$HADOOP_HOME/share/hadoop/mapreduce/lib/*:$HADOOP_HOME/share/hadoop/mapreduce/*:$HADOOP_HOME/share/hadoop/tools/lib/*"
@@ -62,9 +62,10 @@ RUN curl -sL --retry 3 \
 COPY entrypoint.sh /opt/
 COPY decom.sh /opt/
 
-WORKDIR /opt/spark/work-dir
-RUN chmod g+w /opt/spark/work-dir
+WORKDIR $SPARK_HOME/work-dir
+RUN chmod g+w $SPARK_HOME/work-dir
 RUN chmod a+x /opt/decom.sh
+RUN mkdir -pv $SPARK_HOME/.ivy2 && chown ${spark_uid}:${spark_uid} $SPARK_HOME/.ivy2
 
 ENTRYPOINT [ "/opt/entrypoint.sh" ]
 
