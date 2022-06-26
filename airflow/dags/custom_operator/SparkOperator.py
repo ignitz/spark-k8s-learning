@@ -87,6 +87,54 @@ spark_config = {
     }
 }
 
+class KubernetesHookCustom(KubernetesHook):
+    def __init__(
+        self,
+        conn_id: Optional[str] = None,
+        client_configuration: Optional[client.Configuration] = None,
+        cluster_context: Optional[str] = None,
+        config_file: Optional[str] = None,
+        in_cluster: Optional[bool] = None,
+    ) -> None:
+        super().__init__(
+            conn_id=conn_id,
+            client_configuration=client_configuration,
+            cluster_context=cluster_context,
+            config_file=config_file,
+            in_cluster=in_cluster
+        )
+    
+    def delete_custom_object(
+        self, group: str,
+        version: str,
+        plural: str,
+        namespace: Optional[str] = None,
+        name: Optional[str] = None,
+    ):
+        """
+        Creates custom resource definition object in Kubernetes
+
+        :param group: api group
+        :param version: api version
+        :param plural: api plural
+        :param namespace: kubernetes namespace
+        :param name: application name in .metadata.name
+        """
+        api = client.CustomObjectsApi(self.api_client)
+        if namespace is None:
+            namespace = self.get_namespace()
+        try:
+            api.delete_namespaced_custom_object(
+                group=group,
+                version=version,
+                namespace=namespace,
+                plural=plural,
+                name=name,
+            )
+            self.log.warning(f"Deleted {name} SparkApplication.")
+        except client.rest.ApiException:
+            self.log.info(f"SparkApp {name} not found.")
+        
 
 class SparkOperator(BaseOperator):
     """
@@ -150,7 +198,7 @@ class SparkOperator(BaseOperator):
         self.attach_log = attach_log
         self.namespace = namespace
         self.kubernetes_conn_id = kubernetes_conn_id
-        self.hook = KubernetesHook(conn_id=self.kubernetes_conn_id)
+        self.hook = KubernetesHookCustom(conn_id=self.kubernetes_conn_id)
         self.api_group = api_group
         self.api_version = api_version
         self.plural = "sparkapplications"
@@ -326,15 +374,13 @@ class SparkOperator(BaseOperator):
             raise ae
         finally:
             # delete sparkapplication
-            pass
-            # TODO: Delete after send application
-            # api.delete_namespaced_custom_object(
-            #         group=self.api_group,
-            #         version=self.api_version,
-            #         namespace=self.namespace,
-            #         plural=self.plural,
-            #         name=self.application_name,
-            #     )
+            self.hook.delete_custom_object(
+                group=self.api_group,
+                version=self.api_version,
+                namespace=self.namespace,
+                plural=self.plural,
+                name=self.application_name,
+            )
 
         self.log.info("SparkApplication finished: %s", self.application_name)
         
