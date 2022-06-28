@@ -7,7 +7,7 @@ spec:
   type: Python
   pythonVersion: "3"
   mode: cluster
-  image: "spark-custom:latest"
+  image: "ignitz/spark:latest"
   imagePullPolicy: IfNotPresent
   mainApplicationFile: s3a://spark-artifacts/pyspark/examples/pokeapi.py
   sparkVersion: "3.2.1"

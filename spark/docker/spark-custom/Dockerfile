@@ -17,6 +17,18 @@
 # ARG SPARK_IMAGE=gcr.io/spark-operator/spark-py:v3.1.1-hadoop3
 ARG SPARK_IMAGE=spark-base:latest
 FROM ${SPARK_IMAGE}
+USER root
+
+RUN apt update && apt install -y git
+
+RUN cd /tmp && git clone https://github.com/edenhill/librdkafka.git && \
+    cd librdkafka && git checkout tags/v1.9.0 && \
+    ./configure && make && make install && \
+    cd ../ && rm -rf librdkafka
+
+
+# Build main Spark Image
+FROM ${SPARK_IMAGE}
 
 # Switch to user root so we can add additional jars and configuration files.
 USER root
@@ -73,6 +85,12 @@ COPY conf/spark-env.sh $HADOOP_HOME/conf/
 COPY conf/spark-defaults.conf $HADOOP_HOME/conf/
 
 ENV PATH $PATH:/opt/spark/bin
+
+# Copy LIBRDKAFKA_LIBRARY_PATH to this image
+# This shit is needed for librdkafka to work on Apple Silicon (M1)
+COPY --from=0 /usr/local/lib /usr/local/lib
+COPY --from=0 /usr/local/include /usr/local/include
+COPY --from=0 /usr/local/share/doc/librdkafka /usr/local/share/doc/librdkafka
 
 # PIP requirements
 COPY ./requirements.txt /tmp/
