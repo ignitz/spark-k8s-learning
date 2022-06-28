@@ -32,12 +32,12 @@ install-prometheus: ## Install Prometheus in Kind
 
 .PHONY: build-spark
 build-spark: ## Build Spark image
-	@docker build -f spark/docker/spark-base/Dockerfile -t spark-base:latest spark/docker/spark-base
-	@docker build -f spark/docker/spark-custom/Dockerfile -t spark-custom:latest spark/docker/spark-custom
+	@docker build -f spark/docker/spark-base/Dockerfile.3.2.1 -t spark-base:latest spark/docker/spark-base
+	@docker build -f spark/docker/spark-custom/Dockerfile.3.2.1 -t spark-custom:latest spark/docker/spark-custom
 
 .PHONY: build-operator
 build-operator: build-spark ## Build Spark Operator image
-	@docker build -f spark/docker/spark-operator/Dockerfile -t spark-operator:latest spark/docker/spark-operator
+	@docker build -f spark/docker/spark-operator/Dockerfile.3.2.1 -t spark-operator:latest spark/docker/spark-operator
 
 .PHONY: send-images
 send-images: ## Send spark images to Kind

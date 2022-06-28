@@ -376,7 +376,11 @@ class SparkOperator(BaseOperator):
                 name=self.application_name,
                 namespace=self.namespace,
             )
-            self.log.error(error_obj['status']['applicationState']['error'])
+
+            error_message = error_obj['status']['applicationState'].get(
+                'error')
+            if error_message is not None:
+                self.log.error(error_message)
             raise ae
         finally:
             # delete sparkapplication
