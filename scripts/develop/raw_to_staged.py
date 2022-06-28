@@ -7,8 +7,7 @@ table_name = sys.argv[1]
 
 content_type = sys.argv[2] if len(sys.argv) > 2 else 'avro'
 
-spark = SparkSession.builder.appName(
-    "Spark Streaming Delta - raw to staged").getOrCreate()
+spark = SparkSession.builder.appName("Raw to Staged").getOrCreate()
 
 raw_to_staged(
     spark=spark,

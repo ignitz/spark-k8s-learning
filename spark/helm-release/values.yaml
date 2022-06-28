@@ -3,7 +3,7 @@ sparkJobNamespace: "spark"
 
 image:
   # -- Image repository
-  repository: ignitz/spark-operator
+  repository: spark-operator
   # -- Image pull policy
   pullPolicy: IfNotPresent
   # -- if set, override the image tag whose default is the chart appVersion.
