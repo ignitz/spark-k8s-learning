@@ -25,5 +25,6 @@ docker run --rm \
     -e AWS_ACCESS_KEY_ID=minio \
     -e AWS_SECRET_ACCESS_KEY=miniominio \
     --network kind \
+    --entrypoint bash \
     amazon/aws-cli:latest \
-    --endpoint-url http://minio:9000 --region us-east-1 s3 cp /etc/hosts s3://spark-history/logs/dummy
+    -c "touch /tmp/dummy && aws --endpoint-url http://minio:9000 --region us-east-1 s3 cp /tmp/dummy s3://spark-history/logs/dummy"

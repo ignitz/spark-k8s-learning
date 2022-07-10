@@ -2,7 +2,7 @@
 version: '2'
 services:
   zookeeper:
-    image: confluentinc/cp-zookeeper:7.1.0
+    image: confluentinc/cp-zookeeper:7.2.0
     hostname: zookeeper
     container_name: zookeeper
     restart: unless-stopped
@@ -13,7 +13,7 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
 
   broker:
-    image: confluentinc/cp-server:7.1.0
+    image: confluentinc/cp-server:7.2.0
     hostname: broker
     container_name: broker
     restart: unless-stopped
@@ -38,7 +38,7 @@ services:
       KAFKA_CONFLUENT_SCHEMA_REGISTRY_URL: http://schema-registry:8081
 
   schema-registry:
-    image: confluentinc/cp-schema-registry:7.1.0
+    image: confluentinc/cp-schema-registry:7.2.0
     hostname: schema-registry
     container_name: schema-registry
     restart: unless-stopped

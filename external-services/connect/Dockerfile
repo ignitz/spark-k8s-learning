@@ -1,4 +1,4 @@
-FROM confluentinc/cp-kafka-connect-base:7.1.0
+FROM confluentinc/cp-kafka-connect-base:7.2.0
 
 ARG DEBEZIUM_VERSION="1.9.2"
 
