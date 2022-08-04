@@ -220,5 +220,5 @@ After the DAG is completed, you can check the output in Minio's datalake bucket 
 - [x] Update to Spark 3.2.1
 - [ ] Update to Spark 3.3.x (after the release of Delta Lake)
 - [x] SparkOperator delete spark manifest after COMPLETED
-- [ ] SparkOperator get status error from SparkApplication and output on Airflow UI
-- [ ] Rebuild Confluent Kafka-Stack in ARM64 to support Apple Silicon (M1)
+- [x] SparkOperator get status error from SparkApplication and output on Airflow UI
+- [x] Rebuild Confluent Kafka-Stack in ARM64 to support Apple Silicon (M1)
