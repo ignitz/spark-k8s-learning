@@ -16,7 +16,8 @@ def kafka_to_raw(spark, database, bootstrap_servers, topic):
         .option('kafka.bootstrap.servers', bootstrap_servers)
         .option('subscribe', topic)
         .option('startingOffsets', 'earliest')
-        .option('maxOffsetsPerTrigger', 100) # Will work only with Spark 3.3 with 
+        # Will work only with Spark 3.3 with
+        .option('maxOffsetsPerTrigger', 100)
         .load()
     )
 
@@ -29,23 +30,26 @@ def kafka_to_raw(spark, database, bootstrap_servers, topic):
         checkpointLocation=checkpoint_location
     ).awaitTermination()
 
+
 def avro_handler(spark, database, table_name, schema_registry):
-    sc=spark.sparkContext
+    sc = spark.sparkContext
 
     path: str = f'{database}/{table_name}'
     source_path: str = f'{settings.prefix_protocol}://{settings.raw}/{path}'
     output_path: str = f'{settings.prefix_protocol}://{settings.staged}/{path}'
     checkpoint_location: str = f'{settings.checkpoint_staged}/{path}'
-    
+
     schemaRegistryUrl: str = schema_registry['url']
-    fromAvroOptions = {"mode":"FAILFAST"}
+    fromAvroOptions = {"mode": "FAILFAST"}
     schema_registry_conf = {
         'url': schemaRegistryUrl,
         # 'basic.auth.user.info': '{}:{}'.format(confluentRegistryApiKey, confluentRegistrySecret)
     }
     schema_registry_client = SchemaRegistryClient(schema_registry_conf)
 
-    binary_to_string = fn.udf(lambda x: str(int.from_bytes(x, byteorder='big')), StringType())
+    binary_to_string = fn.udf(lambda x: str(
+        int.from_bytes(x, byteorder='big')), StringType())
+
     def getSchema(id):
         return str(schema_registry_client.get_schema(id).schema_str)
 
@@ -53,8 +57,8 @@ def avro_handler(spark, database, table_name, schema_registry):
         spark.readStream.format('delta').load(source_path)
     )
 
-
     # Option to process avro binary
+
     def process_confluent_schemaregistry(df_batch, batch_id):
         print(f"batch_id: {batch_id}")
 
@@ -77,10 +81,12 @@ def avro_handler(spark, database, table_name, schema_registry):
 
         for valueRow in distinctSchemaIdDF.collect():
             currentKeySchemaId = sc.broadcast(valueRow.keySchemaId)
-            currentKeySchema = sc.broadcast(getSchema(currentKeySchemaId.value))
+            currentKeySchema = sc.broadcast(
+                getSchema(currentKeySchemaId.value))
 
             currentValueSchemaId = sc.broadcast(valueRow.valueSchemaId)
-            currentValueSchema = sc.broadcast(getSchema(currentValueSchemaId.value))
+            currentValueSchema = sc.broadcast(
+                getSchema(currentValueSchemaId.value))
 
             print(f"currentKeySchemaId: {currentKeySchemaId}")
             print(f"currentKeySchema: {currentKeySchema}")
@@ -95,8 +101,10 @@ def avro_handler(spark, database, table_name, schema_registry):
 
             (
                 filterDF.select(
-                    from_avro('key', currentKeySchema.value, fromAvroOptions).alias('key'),
-                    from_avro('value', currentValueSchema.value, fromAvroOptions).alias('value'),
+                    from_avro('key', currentKeySchema.value,
+                              fromAvroOptions).alias('key'),
+                    from_avro('value', currentValueSchema.value,
+                              fromAvroOptions).alias('value'),
                     'topic',
                     'partition',
                     'offset',
@@ -122,6 +130,7 @@ def avro_handler(spark, database, table_name, schema_registry):
     )
     print("writeStream Done")
 
+
 def json_handler(spark, database, table_name):
     """Trying to develop with:
 
@@ -130,7 +139,7 @@ def json_handler(spark, database, table_name):
     # "value.converter": "org.apache.kafka.connect.json.JsonConverter",
     # "value.converter.schemas.enable": "true"
     """
-    
+
     path: str = f'{database}/{table_name}'
     source_path: str = f'{settings.prefix_protocol}://{settings.raw}/{path}'
     output_path: str = f'{settings.prefix_protocol}://{settings.staged}/{path}'
@@ -167,10 +176,10 @@ def json_handler(spark, database, table_name):
                 df_key.select('payload').schema
             ).json()
             df_value = spark.read.json(
-                    df_batch.select(
-                        fn.col('value')
-                    ).rdd.map(lambda x: x.value)
-                )
+                df_batch.select(
+                    fn.col('value')
+                ).rdd.map(lambda x: x.value)
+            )
             value_schema = StructType(
                 df_value.select('schema').schema
             ).json()
@@ -185,8 +194,6 @@ def json_handler(spark, database, table_name):
             key_payload_schema = schemas.key
             value_payload_schema = schemas.value
 
-        
-
         # df_change = (
         #     df_batch.withColumn('keySchema', fn.from_json(fn.col('key').cast('string'), StructType.fromJson(json.loads(key_schema))))
         #     .withColumn('keySchema', fn.to_json(fn.col('keySchema.schema')))
@@ -199,10 +206,10 @@ def json_handler(spark, database, table_name):
         )
 
         distinctSchemaIdDF = (
-                df_change
-                .select('keySchema', 'valueSchema')
-                .distinct().orderBy('keySchema', 'valueSchema')
-            )
+            df_change
+            .select('keySchema', 'valueSchema')
+            .distinct().orderBy('keySchema', 'valueSchema')
+        )
 
         for valueRow in distinctSchemaIdDF.collect():
             currentKeySchema = valueRow.keySchema
@@ -219,8 +226,10 @@ def json_handler(spark, database, table_name):
             # TODO: Don´t work yet. Need to understanding debezium schema vs spark schema
             (
                 filterDF.select(
-                    fn.from_json('key', StructType.fromJson(json.loads(currentKeySchema))).alias('key'),
-                    fn.from_json('value', StructType.fromJson(json.loads(currentValueSchema))).alias('value'),
+                    fn.from_json('key', StructType.fromJson(
+                        json.loads(currentKeySchema))).alias('key'),
+                    fn.from_json('value', StructType.fromJson(
+                        json.loads(currentValueSchema))).alias('value'),
                     'topic',
                     'partition',
                     'offset',
@@ -257,14 +266,16 @@ def raw_to_staged(spark, database, table_name, environment, content_type='avro')
     schema_registry = settings.schemaRegistry[environment]
 
     if content_type == 'avro':
-        avro_handler(spark=spark, database=database, table_name=table_name, schema_registry=schema_registry)
+        avro_handler(spark=spark, database=database,
+                     table_name=table_name, schema_registry=schema_registry)
     elif content_type == 'json':
         json_handler(spark=spark, database=database, table_name=table_name)
     else:
         raise NotImplemented
 
+
 def staged_to_curated(spark, database, table_name, environment):
-    sc=spark.sparkContext
+    sc = spark.sparkContext
     schema_registry = settings.schemaRegistry[environment]
 
     path: str = f'{database}/{table_name}'
@@ -272,7 +283,7 @@ def staged_to_curated(spark, database, table_name, environment):
     output_path: str = f'{settings.prefix_protocol}://{settings.curated}/{path}'
     history_path: str = f'{settings.prefix_protocol}://{settings.curated}/_history/{path}'
     checkpoint_location: str = f'{settings.checkpoint_curated}/{path}'
-    
+
     schemaRegistryUrl: str = schema_registry['url']
     schema_registry_conf = {
         'url': schemaRegistryUrl,
@@ -282,7 +293,6 @@ def staged_to_curated(spark, database, table_name, environment):
 
     # def getSchema(id):
     #     return str(schema_registry_client.get_schema(id).schema_str)
-
 
     if not path_exists(spark, output_path):
         # delete checkpoint and process entire staged and create folder
@@ -298,7 +308,7 @@ def staged_to_curated(spark, database, table_name, environment):
 
         # drop_duplicates only works if key stay in the same partition
         # df_batch = df_batch.orderBy(fn.col('timestamp').desc()).drop_duplicates(['key'])
-        
+
         # Drop duplication with window partition
         df_batch = df_batch.withColumn(
             '_row_num',
@@ -312,7 +322,6 @@ def staged_to_curated(spark, database, table_name, environment):
 
         df_batch.columns
 
-        
         distinctSchemaIdDF = (
             df_batch
             .select(
@@ -322,10 +331,12 @@ def staged_to_curated(spark, database, table_name, environment):
         )
 
         for valueRow in distinctSchemaIdDF.collect():
-            currentKeySchemaId = sc.broadcast(valueRow.asDict()[key_schema_column])
+            currentKeySchemaId = sc.broadcast(
+                valueRow.asDict()[key_schema_column])
             # currentKeySchema = sc.broadcast(getSchema(currentKeySchemaId.value))
 
-            currentValueSchemaId = sc.broadcast(valueRow.asDict()[value_schema_column])
+            currentValueSchemaId = sc.broadcast(
+                valueRow.asDict()[value_schema_column])
             # currentValueSchema = sc.broadcast(getSchema(currentValueSchemaId.value))
 
             filterDF = df_batch.filter(
@@ -338,7 +349,8 @@ def staged_to_curated(spark, database, table_name, environment):
             # currentValueSchema
 
             if not path_exists(spark, output_path):
-                dfUpdated = filterDF.filter("value.op != 'd'").select("value.after.*", "value.op")
+                dfUpdated = filterDF.filter("value.op != 'd'").select(
+                    "value.after.*", "value.op")
                 (
                     dfUpdated
                     .write
@@ -355,39 +367,43 @@ def staged_to_curated(spark, database, table_name, environment):
 
                 # Need to fill payload before with schema.
                 dfUpdated = filterDF.filter("value.op != 'd'").select("value.after.*", "value.op").union(
-                    filterDF.filter("value.op = 'd'").select("value.before.*", "value.op")
+                    filterDF.filter("value.op = 'd'").select(
+                        "value.before.*", "value.op")
                 )
 
                 (
                     dt.alias('table')
-                        .merge(
-                            dfUpdated.alias("update"),
-                            ' AND '.join([
-                                f'table.`{pk}` = update.`{pk}`'
-                                for pk in filterDF.select('key.*').columns
-                            ])
-                        )
-                        .whenMatchedUpdateAll(condition="update.op != 'd'")
-                        .whenNotMatchedInsertAll(condition="update.op != 'd'")
-                        .whenMatchedDelete(condition="update.op = 'd'")
-                        .execute()
+                    .merge(
+                        dfUpdated.alias("update"),
+                        ' AND '.join([
+                            f'table.`{pk}` = update.`{pk}`'
+                            for pk in filterDF.select('key.*').columns
+                        ])
+                    )
+                    .whenMatchedUpdateAll(condition="update.op != 'd'")
+                    .whenNotMatchedInsertAll(condition="update.op != 'd'")
+                    .whenMatchedDelete(condition="update.op = 'd'")
+                    .execute()
                 )
                 # end else
-            
-            need_compact, numFiles, numOfPartitions = compact_files(spark=spark, target_path=output_path)
-            
+
+            need_compact, numFiles, numOfPartitions = compact_files(
+                spark=spark, target_path=output_path)
+
             # Generate metrics
             dt = DeltaTable.forPath(spark, output_path)
 
             if need_compact:
                 max_version = (
-                    dt.history(2).select(fn.max('version').alias('max_version'))
+                    dt.history(2).select(
+                        fn.max('version').alias('max_version'))
                     .first().max_version
                 )
                 dt.history(2).withColumn(
-                    "numFiles", fn.when(fn.col("version") == max_version, numOfPartitions)
-                                .otherwise(numFiles)
-                    ) \
+                    "numFiles", fn.when(fn.col("version") ==
+                                        max_version, numOfPartitions)
+                    .otherwise(numFiles)
+                ) \
                     .write.format("delta") \
                     .mode("append") \
                     .option("mergeSchema", "true") \
@@ -395,7 +411,7 @@ def staged_to_curated(spark, database, table_name, environment):
             else:
                 dt.history(1).withColumn(
                     "numFiles", fn.lit(numFiles)
-                    ) \
+                ) \
                     .write.format("delta") \
                     .mode("append") \
                     .option("mergeSchema", "true") \
@@ -423,4 +439,3 @@ def staged_to_curated(spark, database, table_name, environment):
     )
     if version % 25 == 0 and version > 0:
         dt.vacuum(retentionHours=768)
-    

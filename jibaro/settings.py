@@ -1,5 +1,8 @@
+__all__ = ['settings']
+
 from typing import Dict, Any
 from pydantic import BaseSettings
+
 
 class Settings(BaseSettings):
     # Storage configs
@@ -29,7 +32,7 @@ class Settings(BaseSettings):
         'local': {
             'bootstrap_servers': 'localhost:9092',
             'tls': False
-        
+
         },
         'example': {
             'bootstrap_servers': 'broker:29092',
@@ -39,5 +42,6 @@ class Settings(BaseSettings):
 
     # Delta Lake confis
     max_num_files_allowed: int = 10000
+
 
 settings = Settings()

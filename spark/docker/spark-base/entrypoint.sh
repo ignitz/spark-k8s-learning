@@ -101,5 +101,10 @@ case "$1" in
     ;;
 esac
 
+# LDCONFIG
+# to avoid
+# ImportError: librdkafka.so.1: cannot open shared object file: No such file or directory
+ldconfig
+
 # Execute the container CMD under tini for better hygiene
 exec /usr/bin/tini -s -- "${CMD[@]}"

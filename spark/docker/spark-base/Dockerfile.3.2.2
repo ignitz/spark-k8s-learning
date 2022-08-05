@@ -30,20 +30,20 @@ ARG spark_uid=185
 ARG DEBIAN_FRONTEND=noninteractive
 
 RUN set -ex && \
-    sed -i 's/http:\/\/deb.\(.*\)/https:\/\/deb.\1/g' /etc/apt/sources.list && \
-    apt-get update && \
-    ln -s /lib /lib64 && \
-    apt install -y bash tini libc6 libpam-modules krb5-user libnss3 \
-                   procps net-tools curl python3 python3-pip && \
-    pip3 install --upgrade pip setuptools && \
-    rm /bin/sh && \
-    ln -sv /bin/bash /bin/sh && \
-    echo "auth required pam_wheel.so use_uid" >> /etc/pam.d/su && \
-    chgrp root /etc/passwd && chmod ug+rw /etc/passwd && \
-    rm -rf /root/.cache && rm -rf /var/cache/apt/*
+  sed -i 's/http:\/\/deb.\(.*\)/https:\/\/deb.\1/g' /etc/apt/sources.list && \
+  apt-get update && \
+  ln -s /lib /lib64 && \
+  apt install -y bash tini libc6 libpam-modules krb5-user libnss3 \
+  procps net-tools curl python3 python3-pip && \
+  pip3 install --upgrade pip setuptools && \
+  rm /bin/sh && \
+  ln -sv /bin/bash /bin/sh && \
+  echo "auth required pam_wheel.so use_uid" >> /etc/pam.d/su && \
+  chgrp root /etc/passwd && chmod ug+rw /etc/passwd && \
+  rm -rf /root/.cache && rm -rf /var/cache/apt/*
 
 # SPARK
-ENV SPARK_VERSION 3.2.1
+ENV SPARK_VERSION 3.2.2
 ENV SPARK_PACKAGE spark-${SPARK_VERSION}-bin-hadoop3.2
 ENV SPARK_HOME /opt/spark
 # ENV SPARK_DIST_CLASSPATH="$HADOOP_HOME/etc/hadoop/*:$HADOOP_HOME/share/hadoop/common/lib/*:$HADOOP_HOME/share/hadoop/common/*:$HADOOP_HOME/share/hadoop/hdfs/*:$HADOOP_HOME/share/hadoop/hdfs/lib/*:$HADOOP_HOME/share/hadoop/hdfs/*:$HADOOP_HOME/share/hadoop/yarn/lib/*:$HADOOP_HOME/share/hadoop/yarn/*:$HADOOP_HOME/share/hadoop/mapreduce/lib/*:$HADOOP_HOME/share/hadoop/mapreduce/*:$HADOOP_HOME/share/hadoop/tools/lib/*"

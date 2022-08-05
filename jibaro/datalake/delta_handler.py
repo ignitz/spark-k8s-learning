@@ -2,6 +2,7 @@ import math
 from delta import DeltaTable
 from jibaro.settings import settings
 
+
 def compact_files(spark, target_path):
     if DeltaTable.isDeltaTable(spark, target_path):
         # DOESN'T NOT WORK in old Delta Lake versions than 1.0.0
@@ -17,7 +18,7 @@ def compact_files(spark, target_path):
 
         numOfPartitions = None
 
-        if need_compact: 
+        if need_compact:
             # Compact files
             numOfPartitions = math.ceil(details.sizeInBytes / (1024 * 1024))
             (

@@ -55,4 +55,13 @@ with DAG(
             kafka_raw >> raw_staged
             raw_staged >> staged_curated
 
+            test_path = SparkOperator(
+                task_id='test_path_' + topic.replace('.', '_'),
+                main_application_file='s3a://spark-artifacts/pyspark/develop/test_jibaro_path.py',
+                arguments=[topic],
+                pyFiles=['s3a://spark-artifacts/lib/jibaro.zip'],
+                dag=dag,
+            )
+            staged_curated >> test_path
+
         kafka_group.set_upstream(start)

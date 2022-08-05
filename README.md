@@ -118,7 +118,7 @@ Obviosly you need Python 3 and pip3 installed on your computer.
 ```shell
 # Install Airflow
 python3 -m venv venv && source venv/bin/activate && \
-pip install apache-airflow==2.3.2 \
+pip install apache-airflow==2.3.3 \
     psycopg2-binary \
     apache-airflow-providers-cncf-kubernetes \
     apache-airflow-providers-amazon
@@ -141,14 +141,14 @@ remote_base_log_folder = s3://airflow-logs/logs
 Change config with sed:
 
 ```shell
-sed -i 's/^executor = .*/executor = LocalExecutor/g' $HOME/airflow/airflow.cfg
-sed -i 's/^load_examples = .*/load_examples = False/g' $HOME/airflow/airflow.cfg
-sed -i 's/^sql_alchemy_conn = .*/sql_alchemy_conn = postgresql+psycopg2:\/\/postgres:postgres@localhost\/airflow/g' $HOME/airflow/airflow.cfg
-sed -i 's:^dags_folder = .*:dags_folder = '`pwd`'/airflow\/dags:g' $HOME/airflow/airflow.cfg
-sed -i 's/^remote_logging = .*/remote_logging = True/g' $HOME/airflow/airflow.cfg
-sed -i 's/^remote_log_conn_id = .*/remote_log_conn_id = AirflowS3Logs/g' $HOME/airflow/airflow.cfg
-sed -i 's/^remote_base_log_folder = .*/remote_base_log_folder = s3:\/\/airflow-logs\/logs/g' $HOME/airflow/airflow.cfg
-sed -i 's/^web_server_port = .*/web_server_port = 8000/g' $HOME/airflow/airflow.cfg
+sed -i '' 's/^executor = .*/executor = LocalExecutor/g' $HOME/airflow/airflow.cfg
+sed -i '' 's/^load_examples = .*/load_examples = False/g' $HOME/airflow/airflow.cfg
+sed -i '' 's/^sql_alchemy_conn = .*/sql_alchemy_conn = postgresql+psycopg2:\/\/postgres:postgres@localhost\/airflow/g' $HOME/airflow/airflow.cfg
+sed -i '' 's:^dags_folder = .*:dags_folder = '`pwd`'/airflow\/dags:g' $HOME/airflow/airflow.cfg
+sed -i '' 's/^remote_logging = .*/remote_logging = True/g' $HOME/airflow/airflow.cfg
+sed -i '' 's/^remote_log_conn_id =.*/remote_log_conn_id = AirflowS3Logs/g' $HOME/airflow/airflow.cfg
+sed -i '' 's/^remote_base_log_folder =.*/remote_base_log_folder = s3:\/\/airflow-logs\/logs/g' $HOME/airflow/airflow.cfg
+sed -i '' 's/^web_server_port = .*/web_server_port = 8000/g' $HOME/airflow/airflow.cfg
 ```
 
 Then run:
@@ -175,6 +175,7 @@ Create an admin user:
 ```shell
 airflow users create \
     --username admin \
+    --password admin \
     --firstname admin \
     --lastname admin \
     --role Admin \

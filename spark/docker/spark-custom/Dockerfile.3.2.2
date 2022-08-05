@@ -45,15 +45,16 @@ RUN rm $SPARK_HOME/jars/guava-14.0.1.jar
 # ADD https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-latest_2.12.jar $SPARK_HOME/jars
 # RUN chmod 644 $SPARK_HOME/jars/spark-bigquery-latest_2.12.jar
 
-ARG SPARK_VERSION="3.2.1"
+ARG SPARK_VERSION="3.2.2"
 ARG HADOOP_VERSION="3.3.1"
 ARG AWS_JAVA_SDK_VERSION="1.11.534"
+ARG DELTA_LAKE_VERSION="2.0.0"
 
 # Install maven packages
 COPY nop.py /root/nop.py
 # Use org.apache.hadoop:hadoop-cloud:${HADOOP_VERSION} with others cloud providers
 RUN spark-submit --packages \
-    org.apache.hadoop:hadoop-aws:${HADOOP_VERSION},org.apache.spark:spark-sql-kafka-0-10_2.12:${SPARK_VERSION},io.delta:delta-core_2.12:1.2.1,com.google.guava:guava:31.1-jre \
+    org.apache.hadoop:hadoop-aws:${HADOOP_VERSION},org.apache.spark:spark-sql-kafka-0-10_2.12:${SPARK_VERSION},io.delta:delta-core_2.12:${DELTA_LAKE_VERSION},com.google.guava:guava:31.1-jre \
     /root/nop.py && \
     mv /root/.ivy2/jars/* $SPARK_HOME/jars/ && \
     rm -rf /root/.ivy2
@@ -91,6 +92,7 @@ ENV PATH $PATH:/opt/spark/bin
 COPY --from=0 /usr/local/lib /usr/local/lib
 COPY --from=0 /usr/local/include /usr/local/include
 COPY --from=0 /usr/local/share/doc/librdkafka /usr/local/share/doc/librdkafka
+
 
 # PIP requirements
 COPY ./requirements.txt /tmp/
