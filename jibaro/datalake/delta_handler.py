@@ -1,6 +1,9 @@
+
 import math
 from delta import DeltaTable
 from jibaro.settings import settings
+
+__all__ = ["compact_files"]
 
 
 def compact_files(spark, target_path):

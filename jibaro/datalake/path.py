@@ -1,6 +1,8 @@
 from typing import Optional
 from jibaro.settings import settings
 
+__all__ = ["mount_path", "mount_checkpoint_path", "mount_history_path"]
+
 
 def mount_path(
     layer: Optional[str] = None, project_name: Optional[str] = None, database: Optional[str] = None, table_name: Optional[str] = None,

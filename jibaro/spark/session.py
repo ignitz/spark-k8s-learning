@@ -1,8 +1,7 @@
+
 from pyspark.sql import SparkSession
-# from typing import Optional, Dict, Any, TYPE_CHECKING, overload
-from py4j.java_gateway import JavaObject
-from pyspark import SparkContext
-from pyspark.sql.session import SparkSession
+
+__all__ = ['JibaroSparkSession']
 
 
 class JibaroSession(SparkSession):
@@ -33,10 +32,6 @@ class JibaroSession(SparkSession):
                 return session
 
     builder = JibaroBuilder()
-
-    def __init__(self, spark_context: SparkContext, jsession: JavaObject = None):
-        super().__init__(sparkContext=spark_context,
-                         jsparkSession=jsession)
 
     @property
     def read(self):

@@ -3,6 +3,8 @@ from pyspark.sql.streaming import DataStreamReader, DataStreamWriter
 from jibaro.datalake.path import mount_path, mount_checkpoint_path
 from jibaro.spark.dataframe import JibaroDataFrame
 
+__all__ = ['JibaroDataStreamReader', 'JibaroDataStreamWriter']
+
 
 class JibaroDataStreamReader(DataStreamReader):
 

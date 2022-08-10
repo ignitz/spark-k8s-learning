@@ -1,10 +1,7 @@
-from typing import Union, TYPE_CHECKING
-from pyspark.sql import DataFrame
-from py4j.java_gateway import JavaObject
 
-if TYPE_CHECKING:
-    from pyspark.sql import SparkSession
-    from pyspark.sql.context import SQLContext
+from pyspark.sql import DataFrame
+
+__all__ = ['JibaroDataFrame']
 
 
 class JibaroDataFrame(DataFrame):
