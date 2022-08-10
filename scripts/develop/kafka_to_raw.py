@@ -1,18 +1,18 @@
-from pyspark.sql import SparkSession
-
+from jibaro.spark.session import JibaroSession
 from jibaro.datalake.cdc import kafka_to_raw
 from jibaro.settings import settings
 import sys
 
 topic = sys.argv[1]
 
-spark = SparkSession.builder.appName("Spark Streaming Delta").getOrCreate()
+spark = JibaroSession.builder.appName("Spark Streaming Delta").getOrCreate()
+spark.__class__ = JibaroSession
 
-kafka_settings = settings.kafka_settings['example']
+kafka_settings = settings.kafka_settings['local']
 
 kafka_to_raw(
     spark=spark,
-    database='kafka',
+    output_layer='raw',
     bootstrap_servers=kafka_settings['bootstrap_servers'],
     topic=topic
 )

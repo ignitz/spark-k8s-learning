@@ -52,9 +52,12 @@ class JibaroDataStreamReader(DataStreamReader):
 class JibaroDataStreamWriter(DataStreamWriter):
 
     def start(self, layer: Optional[str] = None, project_name: Optional[str] = None, database: Optional[str] = None, table_name: Optional[str] = None, **options: dict):
-        path: str = mount_path(
-            layer=layer, project_name=project_name, database=database, table_name=table_name)
-        if options.get('checkpointLocation') is None:
-            options['checkpointLocation'] = mount_checkpoint_path(
+        if all([layer, project_name, database, table_name]) == False:
+            return super().start(**options)
+        else:
+            if options.get('checkpointLocation') is None:
+                options['checkpointLocation'] = mount_checkpoint_path(
+                    layer=layer, project_name=project_name, database=database, table_name=table_name)
+            path: str = mount_path(
                 layer=layer, project_name=project_name, database=database, table_name=table_name)
-        return super().start(path=path, **options)
+            return super().start(path=path, **options)

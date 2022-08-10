@@ -11,11 +11,11 @@ class JibaroSession(SparkSession):
         def __init__(self):
             super().__init__()
 
-        def getOrCreate(self) -> "SparkSession":
+        def getOrCreate(self) -> "JibaroSession":
             with self._lock:
                 from pyspark.context import SparkContext
                 from pyspark.conf import SparkConf
-                session = SparkSession._instantiatedSession
+                session = JibaroSession._instantiatedSession
                 if session is None or session._sc._jsc is None:
                     if self._sc is not None:
                         sc = self._sc

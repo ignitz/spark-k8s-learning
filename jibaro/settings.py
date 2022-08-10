@@ -13,11 +13,6 @@ class Settings(BaseSettings):
     curated: str = 'datalake-curated'
     spark_control: str = 'spark-control'
 
-    checkpoint_paths: str = f"{prefix_protocol}://{spark_control}/checkpoints"
-    checkpoint_raw: str = f"{checkpoint_paths}/raw"
-    checkpoint_staged: str = f"{checkpoint_paths}/staged"
-    checkpoint_curated: str = f"{checkpoint_paths}/curated"
-
     schemaRegistry: Dict[str, Dict[str, Any]] = {
         'local': {
             'url': 'http://localhost:8081'

@@ -10,12 +10,6 @@ if TYPE_CHECKING:
 
 class JibaroDataFrameWriter(DataFrameWriter):
 
-    def __init__(self, df):
-        super().__init__(df)
-
-    def __getitem__(self, item):
-        return super().__getitem__(item)
-
     def json(
         self, layer: str, project_name: str, database: str, table_name: str,
         **options: "OptionalPrimitiveType"
@@ -58,12 +52,6 @@ class JibaroDataFrameWriter(DataFrameWriter):
 
 
 class JibaroDataFrameReader(DataFrameReader):
-
-    def __init__(self, spark):
-        super().__init__(spark)
-
-    def __getitem__(self, item):
-        return super().__getitem__(item)
 
     def load(self, layer: str, project_name: str, database: str, table_name: str,
              **options: "OptionalPrimitiveType") -> "JibaroDataFrame":

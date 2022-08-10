@@ -9,9 +9,6 @@ if TYPE_CHECKING:
 
 class JibaroDataFrame(DataFrame):
 
-    def __init__(self, jdf: JavaObject, sql_ctx: Union["SQLContext", "SparkSession"]):
-        super().__init__(jdf, sql_ctx)
-
     @property
     def write(self):
         from jibaro.spark.readwriter import JibaroDataFrameWriter

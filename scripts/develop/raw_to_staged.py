@@ -1,19 +1,23 @@
-from pyspark.sql import SparkSession
+# from pyspark.sql import SparkSession
+from jibaro.spark.session import JibaroSession
 
 from jibaro.datalake.cdc import raw_to_staged
 import sys
 
-table_name = sys.argv[1]
+project_name = sys.argv[1]
+database = sys.argv[2]
+table_name = sys.argv[3]
 
-content_type = sys.argv[2] if len(sys.argv) > 2 else 'avro'
+content_type = sys.argv[4] if len(sys.argv) > 4 else 'avro'
 
-spark = SparkSession.builder.appName("Raw to Staged").getOrCreate()
+spark = JibaroSession.builder.appName("Raw to Staged").getOrCreate()
 
 raw_to_staged(
     spark=spark,
-    database='kafka',
+    project_name=project_name,
+    database=database,
     table_name=table_name,
-    environment='example',
+    environment='local',
     content_type=content_type
 )
 

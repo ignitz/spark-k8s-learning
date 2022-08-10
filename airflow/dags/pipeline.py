@@ -17,51 +17,71 @@ with DAG(
     start = DummyOperator(task_id='start', dag=dag)
 
     with TaskGroup(group_id='Kafka-Curated') as kafka_group:
-        # topic_list = [
-        #     'dbserver1.inventory.customers',
-        #     'dbserver1.inventory.geom',
-        #     'dbserver1.inventory.orders',
-        #     'dbserver1.inventory.products',
-        #     'dbserver1.inventory.products_on_hand'
-        # ]
-        topic_list = [
-            'dbserver1.inventory.products'
+        source_list = [
+            # {
+            #     "project_name": "dbserver1",
+            #     "database": "inventory",
+            #     "table_name": "customers",
+            # },
+            # {
+            #     "project_name": "dbserver1",
+            #     "database": "inventory",
+            #     "table_name": "geom",
+            # },
+            # {
+            #     "project_name": "dbserver1",
+            #     "database": "inventory",
+            #     "table_name": "orders",
+            # },
+            # {
+            #     "project_name": "dbserver1",
+            #     "database": "inventory",
+            #     "table_name": "products",
+            # },
+            # {
+            #     "project_name": "dbserver1",
+            #     "database": "inventory",
+            #     "table_name": "products_on_hand"
+            # },
+            {
+                "project_name": "dbserver1",
+                "database": "inventory",
+                "table_name": "products",
+            },
         ]
 
-        for topic in topic_list:
+        for source in source_list:
             kafka_raw = SparkOperator(
-                task_id='spark_raw_' + topic.replace('.', '_'),
+                task_id='spark_raw_' +
+                f"{source['project_name']}_{source['database']}_{source['table_name']}",
                 main_application_file='s3a://spark-artifacts/pyspark/develop/kafka_to_raw.py',
-                arguments=[topic],
+                arguments=[
+                    f"{source['project_name']}.{source['database']}.{source['table_name']}"],
                 pyFiles=['s3a://spark-artifacts/lib/jibaro.zip'],
                 dag=dag,
             )
 
             raw_staged = SparkOperator(
-                task_id='spark_staged_' + topic.replace('.', '_'),
+                task_id='spark_staged_' +
+                f"{source['project_name']}_{source['database']}_{source['table_name']}",
                 main_application_file='s3a://spark-artifacts/pyspark/develop/raw_to_staged.py',
-                arguments=[topic, "avro"],
+                arguments=[source['project_name'],
+                           source['database'], source['table_name'], "avro"],
                 pyFiles=['s3a://spark-artifacts/lib/jibaro.zip'],
                 dag=dag,
             )
 
             staged_curated = SparkOperator(
-                task_id='spark_curated_' + topic.replace('.', '_'),
+                task_id='spark_curated_' +
+                f"{source['project_name']}_{source['database']}_{source['table_name']}",
                 main_application_file='s3a://spark-artifacts/pyspark/develop/staged_to_curated.py',
-                arguments=[topic],
+                arguments=[source['project_name'],
+                           source['database'], source['table_name']],
                 pyFiles=['s3a://spark-artifacts/lib/jibaro.zip'],
                 dag=dag,
             )
             kafka_raw >> raw_staged
             raw_staged >> staged_curated
-
-            test_path = SparkOperator(
-                task_id='test_path_' + topic.replace('.', '_'),
-                main_application_file='s3a://spark-artifacts/pyspark/develop/test_jibaro_path.py',
-                arguments=[topic],
-                pyFiles=['s3a://spark-artifacts/lib/jibaro.zip'],
-                dag=dag,
-            )
-            staged_curated >> test_path
+            staged_curated
 
         kafka_group.set_upstream(start)

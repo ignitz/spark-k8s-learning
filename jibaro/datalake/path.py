@@ -40,6 +40,20 @@ def mount_checkpoint_path(
     }[layer]
     prefix = f"{settings.prefix_protocol}://{settings.spark_control}"
 
-    path: str = f"{prefix}/{bucket}/{project_name}/{database}/{table_name}"
+    path: str = f"{prefix}/_checkpoint/{bucket}/{project_name}/{database}/{table_name}"
+
+    return path
+
+
+def mount_history_path(
+    layer: str, project_name: str, database: str, table_name: str,
+):
+    bucket = {
+        "raw": settings.raw,
+        "staged": settings.staged,
+        "curated": settings.curated
+    }[layer]
+    prefix = f"{settings.prefix_protocol}://{settings.spark_control}"
+    path: str = f"{prefix}/_history/{bucket}/{project_name}/{database}/{table_name}"
 
     return path

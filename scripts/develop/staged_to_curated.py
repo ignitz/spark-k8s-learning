@@ -1,17 +1,20 @@
-from pyspark.sql import SparkSession
+from jibaro.spark.session import JibaroSession
 
 from jibaro.datalake.cdc import staged_to_curated
 import sys
 
-table_name = sys.argv[1]
+project_name = sys.argv[1]
+database = sys.argv[2]
+table_name = sys.argv[3]
 
-spark = SparkSession.builder.appName("Staged to Curated").getOrCreate()
+spark = JibaroSession.builder.appName("Staged to Curated").getOrCreate()
 
 staged_to_curated(
     spark=spark,
-    database='kafka',
+    project_name=project_name,
+    database=database,
     table_name=table_name,
-    environment='example'
+    environment='local'
 )
 
 # For Spark 3.1.x

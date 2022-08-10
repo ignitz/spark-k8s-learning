@@ -1,4 +1,5 @@
 from jibaro.datalake.delta_handler import compact_files
+from jibaro.datalake.path import mount_checkpoint_path, mount_path, mount_history_path
 from jibaro.settings import settings
 from jibaro.utils import path_exists, delete_path
 import pyspark.sql.functions as fn
@@ -7,10 +8,9 @@ from pyspark.sql.window import Window
 from pyspark.sql.avro.functions import from_avro
 from confluent_kafka.schema_registry import SchemaRegistryClient
 from delta import DeltaTable
-import json
 
 
-def kafka_to_raw(spark, database, bootstrap_servers, topic):
+def kafka_to_raw(spark, output_layer, bootstrap_servers, topic):
     df = (
         spark.readStream.format('kafka')
         .option('kafka.bootstrap.servers', bootstrap_servers)
@@ -21,23 +21,19 @@ def kafka_to_raw(spark, database, bootstrap_servers, topic):
         .load()
     )
 
-    path: str = f'{database}/{topic}'
-    output_path: str = f'{settings.prefix_protocol}://{settings.raw}/{path}'
-    checkpoint_location: str = f'{settings.checkpoint_raw}/{path}'
+    # TODO: expected with less than two dots
+    project_name, database, table_name = topic.split('.')
 
     df.writeStream.trigger(once=True).format("delta").start(
-        path=output_path,
-        checkpointLocation=checkpoint_location
+        layer=output_layer,
+        project_name=project_name,
+        database=database,
+        table_name=table_name
     ).awaitTermination()
 
 
-def avro_handler(spark, database, table_name, schema_registry):
+def avro_handler(spark, source_layer, target_layer, project_name, database, table_name, schema_registry):
     sc = spark.sparkContext
-
-    path: str = f'{database}/{table_name}'
-    source_path: str = f'{settings.prefix_protocol}://{settings.raw}/{path}'
-    output_path: str = f'{settings.prefix_protocol}://{settings.staged}/{path}'
-    checkpoint_location: str = f'{settings.checkpoint_staged}/{path}'
 
     schemaRegistryUrl: str = schema_registry['url']
     fromAvroOptions = {"mode": "FAILFAST"}
@@ -54,7 +50,12 @@ def avro_handler(spark, database, table_name, schema_registry):
         return str(schema_registry_client.get_schema(id).schema_str)
 
     df = (
-        spark.readStream.format('delta').load(source_path)
+        spark.readStream.format('delta').load(
+            layer=source_layer,
+            project_name=project_name,
+            database=database,
+            table_name=table_name
+        )
     )
 
     # Option to process avro binary
@@ -117,172 +118,40 @@ def avro_handler(spark, database, table_name, schema_registry):
                 .format("delta")
                 .mode("append")
                 .option("mergeSchema", "true")
-                .save(output_path)
+                .save(
+                    mount_path(
+                        layer=target_layer,
+                        project_name=project_name,
+                        database=database,
+                        table_name=table_name
+                    )
+                )
             )
     ###############################################################
     (
         df
         .writeStream
         .trigger(once=True)
-        .option("checkpointLocation", checkpoint_location)
+        .option("checkpointLocation", mount_checkpoint_path(target_layer, project_name, database, table_name))
         .foreachBatch(process_confluent_schemaregistry)
         .start().awaitTermination()
     )
     print("writeStream Done")
 
 
-def json_handler(spark, database, table_name):
-    """Trying to develop with:
-
-    # "key.converter": "org.apache.kafka.connect.json.JsonConverter",
-    # "key.converter.schemas.enable": "true",
-    # "value.converter": "org.apache.kafka.connect.json.JsonConverter",
-    # "value.converter.schemas.enable": "true"
-    """
-
-    path: str = f'{database}/{table_name}'
-    source_path: str = f'{settings.prefix_protocol}://{settings.raw}/{path}'
-    output_path: str = f'{settings.prefix_protocol}://{settings.staged}/{path}'
-    checkpoint_location: str = f'{settings.checkpoint_staged}/{path}'
-    schema_path: str = f'{output_path}/_schema'
-
-    df = (
-        spark.readStream.format('delta').load(source_path)
-    )
-
-    def process_debezium_json(df_batch, batch_id):
-        # https://github.com/apache/spark/pull/22775
-        df_batch = (
-            df_batch.withColumn('key', fn.col('key').cast('string'))
-            .withColumn('value', fn.col('value').cast('string'))
-        )
-
-        key_schema = None
-        key_payload_schema = None
-        value_schema = None
-        value_payload_schema = None
-
-        will_store_schema = False
-        if not path_exists(spark, schema_path):
-            df_key = spark.read.json(
-                df_batch.select(
-                    fn.col('key')
-                ).rdd.map(lambda x: x.key)
-            )
-            key_schema = StructType(
-                df_key.select('schema').schema
-            ).json()
-            key_payload_schema = StructType(
-                df_key.select('payload').schema
-            ).json()
-            df_value = spark.read.json(
-                df_batch.select(
-                    fn.col('value')
-                ).rdd.map(lambda x: x.value)
-            )
-            value_schema = StructType(
-                df_value.select('schema').schema
-            ).json()
-            value_payload_schema = StructType(
-                df_value.select('payload').schema
-            ).json()
-            # write to schema_path later
-            will_store_schema = True
-        else:
-            # get schema
-            schemas = spark.read.parquet(schema_path).first()
-            key_payload_schema = schemas.key
-            value_payload_schema = schemas.value
-
-        # df_change = (
-        #     df_batch.withColumn('keySchema', fn.from_json(fn.col('key').cast('string'), StructType.fromJson(json.loads(key_schema))))
-        #     .withColumn('keySchema', fn.to_json(fn.col('keySchema.schema')))
-        #     .withColumn('valueSchema', fn.from_json(fn.col('value').cast('string'), StructType.fromJson(json.loads(value_schema))))
-        #     .withColumn('valueSchema', fn.to_json(fn.col('valueSchema.schema')))
-        # )
-        df_change = (
-            df_batch.withColumn('keySchema', fn.lit(key_payload_schema))
-            .withColumn('valueSchema', fn.lit(value_payload_schema))
-        )
-
-        distinctSchemaIdDF = (
-            df_change
-            .select('keySchema', 'valueSchema')
-            .distinct().orderBy('keySchema', 'valueSchema')
-        )
-
-        for valueRow in distinctSchemaIdDF.collect():
-            currentKeySchema = valueRow.keySchema
-            currentValueSchema = valueRow.valueSchema
-
-            print(f"currentKeySchema: {currentKeySchema}")
-            print(f"currentValueSchema: {currentValueSchema}")
-
-            filterDF = df_change.filter(
-                (fn.col('keySchema') == currentKeySchema)
-                &
-                (fn.col('valueSchema') == currentValueSchema)
-            )
-            # TODO: Don´t work yet. Need to understanding debezium schema vs spark schema
-            (
-                filterDF.select(
-                    fn.from_json('key', StructType.fromJson(
-                        json.loads(currentKeySchema))).alias('key'),
-                    fn.from_json('value', StructType.fromJson(
-                        json.loads(currentValueSchema))).alias('value'),
-                    'topic',
-                    'partition',
-                    'offset',
-                    'timestamp',
-                    'timestampType',
-                    'keySchema',
-                    'valueSchema',
-                ).withColumn('key', fn.col('key.payload'))
-                .withColumn('value', fn.col('value.payload'))
-                .write
-                .format("delta")
-                .mode("append")
-                .option("mergeSchema", "true")
-                .save(output_path)
-            )
-
-            if will_store_schema:
-                spark.createDataFrame([{
-                    'key': key_payload_schema,
-                    'value': value_payload_schema
-                }]).write.mode('overwrite').parquet(schema_path)
-    ###############################################################
-    (
-        df
-        .writeStream
-        .trigger(once=True)
-        .option("checkpointLocation", checkpoint_location)
-        .foreachBatch(process_debezium_json)
-        .start().awaitTermination()
-    )
-
-
-def raw_to_staged(spark, database, table_name, environment, content_type='avro'):
+def raw_to_staged(spark, project_name, database, table_name, environment, content_type='avro'):
     schema_registry = settings.schemaRegistry[environment]
 
     if content_type == 'avro':
-        avro_handler(spark=spark, database=database,
+        avro_handler(spark=spark, source_layer='raw', target_layer='staged', project_name=project_name, database=database,
                      table_name=table_name, schema_registry=schema_registry)
-    elif content_type == 'json':
-        json_handler(spark=spark, database=database, table_name=table_name)
     else:
         raise NotImplemented
 
 
-def staged_to_curated(spark, database, table_name, environment):
+def staged_to_curated(spark, project_name, database, table_name, environment):
     sc = spark.sparkContext
     schema_registry = settings.schemaRegistry[environment]
-
-    path: str = f'{database}/{table_name}'
-    source_path: str = f'{settings.prefix_protocol}://{settings.staged}/{path}'
-    output_path: str = f'{settings.prefix_protocol}://{settings.curated}/{path}'
-    history_path: str = f'{settings.prefix_protocol}://{settings.curated}/_history/{path}'
-    checkpoint_location: str = f'{settings.checkpoint_curated}/{path}'
 
     schemaRegistryUrl: str = schema_registry['url']
     schema_registry_conf = {
@@ -294,12 +163,23 @@ def staged_to_curated(spark, database, table_name, environment):
     # def getSchema(id):
     #     return str(schema_registry_client.get_schema(id).schema_str)
 
+    source_layer = 'staged'
+    target_layer = 'curated'
+    output_path = mount_path(
+        layer=target_layer, project_name=project_name, database=database, table_name=table_name)
+    checkpoint_location = mount_checkpoint_path(
+        layer=target_layer, project_name=project_name, database=database, table_name=table_name)
+    history_path = mount_history_path(
+        layer=target_layer, project_name=project_name, database=database, table_name=table_name)
+
     if not path_exists(spark, output_path):
         # delete checkpoint and process entire staged and create folder
         delete_path(spark, checkpoint_location)
 
     df = (
-        spark.readStream.format('delta').load(source_path)
+        spark.readStream.format('delta').load(
+            layer=source_layer, project_name=project_name, database=database, table_name=table_name
+        )
     )
 
     # Option to process avro binary
