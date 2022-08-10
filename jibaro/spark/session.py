@@ -1,6 +1,5 @@
 from pyspark.sql import SparkSession
-from typing import Optional, Dict, Any, TYPE_CHECKING, overload
-from jibaro.spark.readwriter import JibaroDataFrameReader
+# from typing import Optional, Dict, Any, TYPE_CHECKING, overload
 from py4j.java_gateway import JavaObject
 from pyspark import SparkContext
 from pyspark.sql.session import SparkSession
@@ -40,9 +39,11 @@ class JibaroSession(SparkSession):
                          jsparkSession=jsession)
 
     @property
-    def read(self) -> JibaroDataFrameReader:
+    def read(self):
+        from jibaro.spark.readwriter import JibaroDataFrameReader
         return JibaroDataFrameReader(self._wrapped)
 
-    # @property
-    # def readStream(self):
-    #     return JibaroDataStreamReader(self._wrapped)
+    @property
+    def readStream(self):
+        from jibaro.spark.streaming import JibaroDataStreamReader
+        return JibaroDataStreamReader(self._wrapped)
