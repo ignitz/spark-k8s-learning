@@ -6,7 +6,7 @@ from pydantic import BaseSettings
 
 class Settings(BaseSettings):
     # Storage configs
-    prefix_protocol: str = 's3a'
+    prefix_protocol: str = 's3'
     # TODO: add ENV
     raw: str = 'datalake-raw'
     staged: str = 'datalake-staged'

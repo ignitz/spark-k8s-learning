@@ -52,7 +52,7 @@ ARG HADOOP_VERSION="3.3.2"
 COPY nop.py /root/nop.py
 # Use org.apache.hadoop:hadoop-cloud:${HADOOP_VERSION} with others cloud providers
 RUN spark-submit --packages \
-    org.apache.hadoop:hadoop-aws:${HADOOP_VERSION},org.apache.spark:spark-sql-kafka-0-10_2.12:${SPARK_VERSION},io.delta:delta-core_2.12:1.2.1,com.google.guava:guava:31.1-jre \
+    org.apache.hadoop:hadoop-aws:${HADOOP_VERSION},org.apache.spark:spark-sql-kafka-0-10_2.12:${SPARK_VERSION},io.delta:delta-core_2.12:2.1.0,com.google.guava:guava:31.1-jre \
     /root/nop.py && \
     mv /root/.ivy2/jars/* $SPARK_HOME/jars/ && \
     rm -rf /root/.ivy2
