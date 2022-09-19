@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 spark_config_common = {
     # S3a protocol
     "spark.hadoop.fs.s3a.impl": "org.apache.hadoop.fs.s3a.S3AFileSystem",
+    "spark.hadoop.fs.s3.impl": "org.apache.hadoop.fs.s3a.S3AFileSystem",
     "spark.hadoop.fs.s3a.aws.credentials.provider": (
         "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider"
         + "," +
@@ -66,7 +67,7 @@ spark_config = {
             # "spark.history.fs.logDirectory": "s3a://spark-history/logs",
         }
     },
-    "3.2.1": {
+    "3.2.2": {
         "minio": {
             **spark_config_common,
             # S3a protocol
@@ -84,7 +85,26 @@ spark_config = {
             # Spark History
             "spark.eventLog.enabled": "false",
         }
-    }
+    },
+    "3.3.0": {
+        "minio": {
+            **spark_config_common,
+            # S3a protocol
+            "spark.hadoop.fs.s3a.endpoint": "http://minio:9000",
+            "spark.hadoop.fs.s3a.access.key": "minio",
+            "spark.hadoop.fs.s3a.secret.key": "miniominio",
+            # Spark History
+            "spark.eventLog.enabled": "true",
+            "spark.eventLog.dir": "s3a://spark-history/logs",
+        },
+        "aws-us-east-1": {
+            **spark_config_common,
+            # S3a protocol
+            "spark.hadoop.fs.s3a.endpoint": "https://s3.us-east-1.amazonaws.com",
+            # Spark History
+            "spark.eventLog.enabled": "false",
+        }
+    },
 }
 
 
@@ -177,7 +197,7 @@ class SparkOperator(BaseOperator):
         packages: List[str] = [],
         jars: List[str] = [],
         pyFiles: List[str] = [],
-        spark_version: str = "3.2.1",
+        spark_version: str = "3.3.0",
         service_account: str = "spark",
         driver: Optional[Dict[str, Any]] = None,
         executor: Optional[Dict[str, Any]] = None,

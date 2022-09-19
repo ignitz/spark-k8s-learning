@@ -17,7 +17,7 @@ raw_to_staged(
     project_name=project_name,
     database=database,
     table_name=table_name,
-    environment='local',
+    environment='example',
     content_type=content_type
 )
 

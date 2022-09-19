@@ -14,7 +14,7 @@ staged_to_curated(
     project_name=project_name,
     database=database,
     table_name=table_name,
-    environment='local'
+    environment='example'
 )
 
 # For Spark 3.1.x

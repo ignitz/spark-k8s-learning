@@ -8,7 +8,7 @@ topic = sys.argv[1]
 spark = JibaroSession.builder.appName("Spark Streaming Delta").getOrCreate()
 spark.__class__ = JibaroSession
 
-kafka_settings = settings.kafka_settings['local']
+kafka_settings = settings.kafka_settings['example']
 
 kafka_to_raw(
     spark=spark,

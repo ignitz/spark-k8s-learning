@@ -36,9 +36,15 @@ class JibaroSession(SparkSession):
     @property
     def read(self):
         from jibaro.spark.readwriter import JibaroDataFrameReader
-        return JibaroDataFrameReader(self._wrapped)
+        if hasattr(self, '_wrapped'):
+            return JibaroDataFrameReader(self._wrapped)
+        else:
+            return JibaroDataFrameReader(self)
 
     @property
     def readStream(self):
         from jibaro.spark.streaming import JibaroDataStreamReader
-        return JibaroDataStreamReader(self._wrapped)
+        if hasattr(self, '_wrapped'):
+            return JibaroDataStreamReader(self._wrapped)
+        else:
+            return JibaroDataStreamReader(self)
