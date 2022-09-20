@@ -219,7 +219,7 @@ After the DAG is completed, you can check the output in Minio's datalake bucket 
 - [ ] Airflow allow to send spark job to kubernetes
 - [x] Compile spark-operator binary in amd64 and arm64 to Apple Silicon
 - [x] Update to Spark 3.2.1
-- [ ] Update to Spark 3.3.x (after the release of Delta Lake)
+- [x] Update to Spark 3.3.x (after the release of Delta Lake)
 - [x] SparkOperator delete spark manifest after COMPLETED
 - [x] SparkOperator get status error from SparkApplication and output on Airflow UI
 - [x] Rebuild Confluent Kafka-Stack in ARM64 to support Apple Silicon (M1)
