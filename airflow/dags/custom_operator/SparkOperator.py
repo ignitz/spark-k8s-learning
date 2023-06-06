@@ -93,9 +93,10 @@ spark_config = {
             "spark.hadoop.fs.s3a.endpoint": "http://minio:9000",
             "spark.hadoop.fs.s3a.access.key": "minio",
             "spark.hadoop.fs.s3a.secret.key": "miniominio",
+            "spark.hadoop.fs.s3a.path.style.access": "true",
             # Spark History
             "spark.eventLog.enabled": "true",
-            "spark.eventLog.dir": "s3a://spark-history/logs",
+            "spark.eventLog.dir": "s3://spark-history/logs",
         },
         "aws-us-east-1": {
             **spark_config_common,
@@ -192,8 +193,8 @@ class SparkOperator(BaseOperator):
         kubernetes_conn_id: str = "kubernetes_default",
         api_group: str = 'sparkoperator.k8s.io',
         api_version: str = 'v1beta2',
-        image: str = 'spark-custom:latest',
-        main_application_file: str = 's3a://spark-artifacts/pyspark/pokeapi.py',
+        image: str = 'ignitz/spark-custom:latest',
+        main_application_file: str = 's3://spark-artifacts/pyspark/pokeapi.py',
         packages: List[str] = [],
         jars: List[str] = [],
         pyFiles: List[str] = [],

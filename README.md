@@ -118,7 +118,7 @@ Obviosly you need Python 3 and pip3 installed on your computer.
 ```shell
 # Install Airflow
 python3 -m venv venv && source venv/bin/activate && \
-pip install apache-airflow==2.3.3 \
+pip install apache-airflow==2.4.3 \
     psycopg2-binary \
     apache-airflow-providers-cncf-kubernetes \
     apache-airflow-providers-amazon
@@ -156,7 +156,7 @@ Then run:
 ```shell
 source venv/bin/activate && airflow db init && \
 airflow connections add \
-   --conn-type 's3' \
+   --conn-type 'aws' \
    --conn-extra '{ "aws_access_key_id": "minio", "aws_secret_access_key": "miniominio", "host": "http://localhost:9000" }' \
    AirflowS3Logs &&\
 airflow pools set spark 2 'spark on k8s'

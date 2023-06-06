@@ -1,5 +1,5 @@
 ARG SPARK_IMAGE=spark-custom:latest
-ARG GOARCH=amd64
+ARG GOARCH=arm64
 
 FROM golang:1.15.2-alpine as builder
 

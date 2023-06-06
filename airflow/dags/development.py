@@ -15,8 +15,8 @@ with DAG(
 
     tk = SparkOperator(
                 task_id='spark_development',
-                main_application_file='s3a://spark-artifacts/pyspark/develop/development.py',
-                pyFiles=['s3a://spark-artifacts/lib/jibaro.zip'],
+                main_application_file='s3://spark-artifacts/pyspark/develop/development.py',
+                pyFiles=['s3://spark-artifacts/lib/jibaro.zip'],
                 dag=dag,
             )
         

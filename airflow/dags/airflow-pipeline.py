@@ -44,25 +44,25 @@ with DAG(
         for topic in topic_list:
             kafka_raw = SparkOperator(
                 task_id='spark_raw_' + topic.replace('.', '_'),
-                main_application_file='s3a://spark-artifacts/pyspark/develop/kafka_to_raw.py',
+                main_application_file='s3://spark-artifacts/pyspark/develop/kafka_to_raw.py',
                 arguments=[topic],
-                pyFiles=['s3a://spark-artifacts/lib/jibaro.zip'],
+                pyFiles=['s3://spark-artifacts/lib/jibaro.zip'],
                 dag=dag,
             )
 
             raw_staged = SparkOperator(
                 task_id='spark_staged_' + topic.replace('.', '_'),
-                main_application_file='s3a://spark-artifacts/pyspark/develop/raw_to_staged.py',
+                main_application_file='s3://spark-artifacts/pyspark/develop/raw_to_staged.py',
                 arguments=[topic, 'avro'],
-                pyFiles=['s3a://spark-artifacts/lib/jibaro.zip'],
+                pyFiles=['s3://spark-artifacts/lib/jibaro.zip'],
                 dag=dag,
             )
 
             staged_curated = SparkOperator(
                 task_id='spark_curated_' + topic.replace('.', '_'),
-                main_application_file='s3a://spark-artifacts/pyspark/develop/staged_to_curated.py',
+                main_application_file='s3://spark-artifacts/pyspark/develop/staged_to_curated.py',
                 arguments=[topic],
-                pyFiles=['s3a://spark-artifacts/lib/jibaro.zip'],
+                pyFiles=['s3://spark-artifacts/lib/jibaro.zip'],
                 dag=dag,
             )
             kafka_raw >> raw_staged >> staged_curated
