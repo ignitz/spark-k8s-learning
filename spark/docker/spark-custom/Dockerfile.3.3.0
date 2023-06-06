@@ -45,8 +45,8 @@ RUN rm $SPARK_HOME/jars/guava-*.jar
 # ADD https://storage.googleapis.com/spark-lib/bigquery/spark-bigquery-latest_2.12.jar $SPARK_HOME/jars
 # RUN chmod 644 $SPARK_HOME/jars/spark-bigquery-latest_2.12.jar
 
-ARG SPARK_VERSION="3.3.0"
-ARG HADOOP_VERSION="3.3.2"
+ARG SPARK_VERSION="3.3.1"
+ARG HADOOP_VERSION="3.3.3"
 
 # Install maven packages
 COPY nop.py /root/nop.py

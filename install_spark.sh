@@ -1,7 +1,5 @@
 #!/bin/bash
 
-kubectl create namespace spark --dry-run=client -o yaml | kubectl apply -f -
-
 # Create namespace "spark" where will run Jobs
 kubectl create namespace spark --dry-run=client -o yaml | kubectl apply -f -
 
@@ -14,3 +12,5 @@ helm upgrade --install spark-operator spark-operator/spark-operator --debug \
     --namespace spark-operator \
     --create-namespace \
     -f spark/helm-release/values.yaml
+
+kubectl create configmap -n spark-operator spark-config --from-file=./spark/docker/spark-custom/conf/spark-defaults.conf --dry-run=client -o yaml | kubectl apply -f -

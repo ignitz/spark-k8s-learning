@@ -54,30 +54,30 @@ with DAG(
             kafka_raw = SparkOperator(
                 task_id='spark_raw_' +
                 f"{source['project_name']}_{source['database']}_{source['table_name']}",
-                main_application_file='s3a://spark-artifacts/pyspark/develop/kafka_to_raw.py',
+                main_application_file='s3://spark-artifacts/pyspark/develop/kafka_to_raw.py',
                 arguments=[
                     f"{source['project_name']}.{source['database']}.{source['table_name']}"],
-                pyFiles=['s3a://spark-artifacts/lib/jibaro.zip'],
+                pyFiles=['s3://spark-artifacts/lib/jibaro.zip'],
                 dag=dag,
             )
 
             raw_staged = SparkOperator(
                 task_id='spark_staged_' +
                 f"{source['project_name']}_{source['database']}_{source['table_name']}",
-                main_application_file='s3a://spark-artifacts/pyspark/develop/raw_to_staged.py',
+                main_application_file='s3://spark-artifacts/pyspark/develop/raw_to_staged.py',
                 arguments=[source['project_name'],
                            source['database'], source['table_name'], "avro"],
-                pyFiles=['s3a://spark-artifacts/lib/jibaro.zip'],
+                pyFiles=['s3://spark-artifacts/lib/jibaro.zip'],
                 dag=dag,
             )
 
             staged_curated = SparkOperator(
                 task_id='spark_curated_' +
                 f"{source['project_name']}_{source['database']}_{source['table_name']}",
-                main_application_file='s3a://spark-artifacts/pyspark/develop/staged_to_curated.py',
+                main_application_file='s3://spark-artifacts/pyspark/develop/staged_to_curated.py',
                 arguments=[source['project_name'],
                            source['database'], source['table_name']],
-                pyFiles=['s3a://spark-artifacts/lib/jibaro.zip'],
+                pyFiles=['s3://spark-artifacts/lib/jibaro.zip'],
                 dag=dag,
             )
             kafka_raw >> raw_staged

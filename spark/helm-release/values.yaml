@@ -3,7 +3,7 @@ sparkJobNamespace: "spark"
 
 image:
   # -- Image repository
-  repository: spark-operator
+  repository: ignitz/spark-operator
   # -- Image pull policy
   pullPolicy: IfNotPresent
   # -- if set, override the image tag whose default is the chart appVersion.
@@ -21,3 +21,17 @@ ingressUrlFormat: "{{$appName}}.localhost"
 podLabels: {
     user: yuriniitsuma, # just an example
   }
+
+volumeMounts:
+  - name: spark-config
+    mountPath: /opt/spark/conf
+
+volumes:
+  - name: spark-config
+    configMap:
+      name: spark-config
+      defaultMode: 420
+      items:
+        - key: spark-defaults.conf
+          mode: 420
+          path: spark-defaults.conf
