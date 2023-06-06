@@ -5,7 +5,7 @@ services:
   # Trino
   ###################################################################
   trino-coordinator:
-    image: "trinodb/trino:latest"
+    image: "trinodb/trino:414"
     container_name: coordinator
     hostname: coordinator
     ports:
@@ -25,7 +25,7 @@ services:
           memory: 3G
 
   trino-worker:
-    image: "trinodb/trino:latest"
+    image: "trinodb/trino:414"
     container_name: worker
     hostname: worker
     volumes:
